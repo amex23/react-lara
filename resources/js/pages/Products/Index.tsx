@@ -96,7 +96,10 @@ export default function Products() {
                                     <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.price}</TableCell>
                                     <TableCell>{product.description}</TableCell>
-                                    <TableCell className="text-center">
+                                    <TableCell className="text-center space-x-2">
+                                        <Link href={route('products.edit', product.id)}>
+                                            <Button className='bg-slate-600 hover:bg-slate-700'>Edit</Button>
+                                        </Link>
                                         <Button disabled={processing} onClick={() => handleDelete(product.id, product.name)} className='bg-red-500 hover:bg-red-700'>Delete</Button>
                                     </TableCell>
                                 </TableRow>
