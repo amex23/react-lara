@@ -24,12 +24,12 @@ export default function Dashboard() {
 
                 <div className="mt-2 grid auto-rows-min gap-4 md:grid-cols-2 items-center">
                     <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <h2 className='font-bold text-center mt-3 text-2xl'>Total Clicks</h2>
+                        <h2 className='font-bold text-center mt-3 text-2xl'>Total Clicks: 30</h2>
                         <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
                     </div>
 
                     <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <h2 className='font-bold text-center mt-3 text-2xl'>Checkouts</h2>
+                    <h2 className='font-bold text-center mt-3 text-2xl'>Checkouts: 12</h2>
                         <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
                     </div>
                 </div>
@@ -40,12 +40,24 @@ export default function Dashboard() {
                     <h2 className='font-bold text-center mt-3 text-2xl'>Current MyDay</h2>
 
                     <div className="p-4 grid grid-cols-3 grid-rows-2 gap-x-3 gap-y-4">
-                    <span className="rounded-md bg-green-400">1</span>
-                    <span className="rounded-md bg-green-400">2</span>
-                    <span className="rounded-md bg-green-400">3</span>
-                    <span className="rounded-md bg-green-400">4</span>
-                    <span className="rounded-md bg-green-400">5</span>
-                    <span className="rounded-md bg-green-400">6</span>
+                    <span className="rounded-md bg-green-400">
+                        <img className='rounded-md' src="https://cdn.shopify.com/s/files/1/0618/8931/4989/files/IMG_4662.heic?v=1768227981" alt="" />
+                    </span>
+                    <span className="rounded-md bg-green-400">
+                        <img className='rounded-md' src="https://cdn.shopify.com/s/files/1/0618/8931/4989/files/IMG_4662.heic?v=1768227981" alt="" />
+                    </span>
+                    <span className="rounded-md bg-green-400">
+                        <img className='rounded-md' src="https://cdn.shopify.com/s/files/1/0618/8931/4989/files/IMG_4662.heic?v=1768227981" alt="" />
+                    </span>
+                    <span className="rounded-md bg-green-400">
+                        <img className='rounded-md' src="https://cdn.shopify.com/s/files/1/0618/8931/4989/files/IMG_4662.heic?v=1768227981" alt="" />
+                    </span>
+                    <span className="rounded-md bg-green-400">
+                        <img className='rounded-md' src="https://cdn.shopify.com/s/files/1/0618/8931/4989/files/IMG_4662.heic?v=1768227981" alt="" />
+                    </span>
+                    <span className="rounded-md bg-green-400">
+                        <img className='rounded-md' src="https://cdn.shopify.com/s/files/1/0618/8931/4989/files/IMG_4662.heic?v=1768227981" alt="" />
+                    </span>
                     </div>
 
                     <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />

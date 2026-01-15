@@ -4,23 +4,43 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\AdminRegisterController;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
+// Public routes
 Route::get('/', function () {
     return Inertia::render('welcome', [
         'canRegister' => Features::enabled(Features::registration()),
     ]);
 })->name('home');
 
+// Routes that require authentication
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
+
+    // Dashboard
+    Route::get('/dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
-    Route::get('/products',[ProductController::class,'index'])->name('products.index');
-    Route::post('/products',[ProductController::class,'store'])->name('products.store');
-    Route::get('/products/create', [ProductController::class,'create'])->name('products.create');
-    Route::get('/products/{product}/edit', [ProductController::class,'edit'])->name('products.edit');
-    Route::put('/products/{product}', [ProductController::class,'update'])->name('products.update');
-    Route::delete('/products/{product}', [ProductController::class,'destroy'])->name('products.destroy');
+
+    // Products
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
+    Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // Admin registration (any logged-in user for testing)
+    Route::get('/register-admin', [AdminRegisterController::class, 'create'])
+        ->name('register-admin');
+
+    Route::post('/register-admin', [AdminRegisterController::class, 'store'])
+        ->name('register-admin.store');
 });
 
 require __DIR__.'/settings.php';
