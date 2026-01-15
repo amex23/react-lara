@@ -54,7 +54,7 @@ export default function Create() {
                     )}
 
                     <div className="space-y-1.5">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name">Store URL/Name</Label>
                         <Input
                             id="name"
                             placeholder="Product Name"

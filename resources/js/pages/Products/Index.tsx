@@ -83,7 +83,7 @@ export default function Products() {
                         <TableHeader>
                             <TableRow>
                             <TableHead className="w-[100px]">ID</TableHead>
-                            <TableHead>Name</TableHead>
+                            <TableHead>Store Name/URL</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className='text-center'>Action</TableHead>
