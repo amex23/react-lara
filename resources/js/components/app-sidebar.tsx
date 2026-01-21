@@ -32,7 +32,7 @@ export function AppSidebar() {
         ...(auth?.user?.user_type === 'admin'
             ? [
                 {
-                    title: 'Product Userss',
+                    title: 'Product Users',
                     href: '/products',
                     icon: PackageSearch,
                 },
