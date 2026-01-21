@@ -12,14 +12,14 @@ use App\Http\Controllers\AdminRegisterController;
 |--------------------------------------------------------------------------
 */
 
-// Public routes
+// Public home
 Route::get('/', function () {
     return Inertia::render('welcome', [
         'canRegister' => Features::enabled(Features::registration()),
     ]);
 })->name('home');
 
-// Routes that require authentication
+// Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
@@ -28,19 +28,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     // Products
-    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
-    Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::resource('products', ProductController::class);
 
-    // Admin registration (any logged-in user for testing)
+    // ===============================
+    // ADMIN REGISTRATION
+    // ===============================
     Route::get('/register-admin', [AdminRegisterController::class, 'create'])
-        ->name('register-admin');
+        ->name('register.admin');
 
     Route::post('/register-admin', [AdminRegisterController::class, 'store'])
-        ->name('register-admin.store');
+        ->name('register.admin.store');
 });
 
 require __DIR__.'/settings.php';

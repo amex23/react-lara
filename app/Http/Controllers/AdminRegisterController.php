@@ -18,7 +18,7 @@ class AdminRegisterController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:users',
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|confirmed|min:8',
         ]);
 
@@ -26,9 +26,11 @@ class AdminRegisterController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'user_type' => 'admin', // force admin
+            'user_type' => 'admin', // 🔒 FORCE ADMIN
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Admin account created!');
+        return redirect()
+            ->route('dashboard')
+            ->with('success', 'Admin account created successfully!');
     }
 }
