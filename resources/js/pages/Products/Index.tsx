@@ -32,6 +32,7 @@ interface Product {
     name: string;
     price: number;
     description: string;
+    image1?: string;
 }
 
 
@@ -83,6 +84,7 @@ export default function Products() {
                         <TableHeader>
                             <TableRow>
                             <TableHead className="w-[100px]">ID</TableHead>
+                            <TableHead>Image</TableHead>
                             <TableHead>Store Name/URL</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Description</TableHead>
@@ -91,8 +93,21 @@ export default function Products() {
                         </TableHeader>
                         <TableBody>
                             {products.map((product) => (
-                                 <TableRow>
+                                 <TableRow key={product.id}>
                                     <TableCell className="font-medium">{product.id}</TableCell>
+                                    <TableCell>
+                                        {product.image1 ? (
+                                            <img 
+                                                src={`/storage/${product.image1}`} 
+                                                alt={product.name}
+                                                className="w-16 h-16 object-cover rounded"
+                                            />
+                                        ) : (
+                                            <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                                                No image
+                                            </div>
+                                        )}
+                                    </TableCell>
                                     <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.price}</TableCell>
                                     <TableCell>{product.description}</TableCell>

@@ -9,20 +9,14 @@ import { route } from 'ziggy-js';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { CircleAlert } from 'lucide-react';
-
-// const breadcrumbs: BreadcrumbItem[] = [
-//     {
-//         title: 'Edit a Product',
-//         href: '/products/edit',
-//     },
-// ];
-
+import { useState } from 'react';
 
 interface Product {
     id: number;
     name: string;
     price: number;
     description: string;
+    image1?: string;
 }
 
 interface Props {
@@ -30,17 +24,40 @@ interface Props {
 }
 
 export default function Edit({product} : Props) {
+    const [imagePreview, setImagePreview] = useState<string | null>(
+        product.image1 ? `/storage/${product.image1}` : null
+    );
 
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         name: product.name,
         price: product.price,
         description: product.description,
+        image1: null as File | null,
+        _method: 'PUT',
     });
 
     const HandleUpdate = (e: React.FormEvent) => {
         e.preventDefault();
-        // console.log(data);
-        put(route('products.update', product.id));
+        post(route('products.update', product.id));
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setData('image1', file);
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveImage = () => {
+        setData('image1', null);
+        setImagePreview(null);
     };
   
     return (
@@ -48,7 +65,7 @@ export default function Edit({product} : Props) {
             <Head title="Update a Product" />
 
             <div className="w-8/12 p-4">
-                <form onSubmit={HandleUpdate}  className="space-y-4">
+                <form onSubmit={HandleUpdate} className="space-y-4">
 
                     {/* display error */}
                   
@@ -74,7 +91,6 @@ export default function Edit({product} : Props) {
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
                         />
-                    
                     </div>
 
                     <div className="space-y-1.5">
@@ -95,6 +111,41 @@ export default function Edit({product} : Props) {
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
                         />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="image1">Product Image</Label>
+                        
+                        {imagePreview && (
+                            <div className="mb-3">
+                                <img 
+                                    src={imagePreview} 
+                                    alt="Product preview" 
+                                    className="w-32 h-32 object-cover rounded border"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="sm"
+                                    className="mt-2"
+                                    onClick={handleRemoveImage}
+                                >
+                                    Remove Image
+                                </Button>
+                            </div>
+                        )}
+                        
+                        <Input
+                            id="image1"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                        />
+                        {data.image1 && (
+                            <p className="text-sm text-muted-foreground">
+                                New image selected: {data.image1.name}
+                            </p>
+                        )}
                     </div>
 
                     <Button type="submit" disabled={processing}>

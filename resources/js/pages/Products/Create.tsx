@@ -7,7 +7,6 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { route } from 'ziggy-js';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
 import { CircleAlert } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -22,12 +21,18 @@ export default function Create() {
         name: '',
         price: '',
         description: '',
+        image1: null as File | null,
     });
 
     const HandleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // console.log(data);
         post(route('products.store'));
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setData('image1', e.target.files[0]);
+        }
     };
   
     return (
@@ -35,7 +40,7 @@ export default function Create() {
             <Head title="Create a New Product" />
 
             <div className="w-8/12 p-4">
-                <form onSubmit={HandleSubmit}  className="space-y-4">
+                <form onSubmit={HandleSubmit} className="space-y-4">
 
                     {/* display error */}
                   
@@ -61,7 +66,6 @@ export default function Create() {
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
                         />
-                    
                     </div>
 
                     <div className="space-y-1.5">
@@ -82,6 +86,21 @@ export default function Create() {
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
                         />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="image1">Product Image</Label>
+                        <Input
+                            id="image1"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                        />
+                        {data.image1 && (
+                            <p className="text-sm text-muted-foreground">
+                                Selected: {data.image1.name}
+                            </p>
+                        )}
                     </div>
 
                     <Button type="submit" disabled={processing}>
