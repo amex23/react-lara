@@ -29,7 +29,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Products
     Route::resource('products', ProductController::class);
+});
 
+// Admin-only routes
+Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     // ===============================
     // ADMIN REGISTRATION
     // ===============================
