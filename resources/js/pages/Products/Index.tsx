@@ -85,6 +85,7 @@ export default function Products() {
                             <TableRow>
                             <TableHead className="w-[100px]">ID</TableHead>
                             <TableHead>Image</TableHead>
+                            <TableHead>Image Url</TableHead>
                             <TableHead>Store Name/URL</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Description</TableHead>
@@ -104,10 +105,11 @@ export default function Products() {
                                             />
                                         ) : (
                                             <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                                                No image
+                                                No image 
                                             </div>
                                         )}
                                     </TableCell>
+                                    <TableCell>{product.image1 ? `/storage/${product.image1}` : 'No image'}</TableCell>
                                     <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.price}</TableCell>
                                     <TableCell>{product.description}</TableCell>
