@@ -68,7 +68,6 @@ export default function Products() {
                     {flash.message && (
                         <Alert>
                             <Megaphone className='h-4 w-4' />
-                            <CircleAlert className='h-4 w-4' />
                             <AlertTitle>Notification</AlertTitle>
                             <AlertDescription>
                                 {flash.message}
@@ -109,7 +108,7 @@ export default function Products() {
                                             </div>
                                         )}
                                     </TableCell>
-                                    <TableCell>{product.image1 ? `/storage/${product.image1}` : 'No image'}</TableCell>
+                                    <TableCell>{product.image1 || 'No image'}</TableCell>
                                     <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.price}</TableCell>
                                     <TableCell>{product.description}</TableCell>
@@ -130,4 +129,3 @@ export default function Products() {
         </AppLayout>
     );
 }
-

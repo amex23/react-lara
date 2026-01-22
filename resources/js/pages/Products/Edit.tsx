@@ -17,6 +17,7 @@ interface Product {
     price: number;
     description: string;
     image1?: string;
+    image1_url?: string;
 }
 
 interface Props {
@@ -25,7 +26,7 @@ interface Props {
 
 export default function Edit({product} : Props) {
     const [imagePreview, setImagePreview] = useState<string | null>(
-        product.image1 ? `/storage/${product.image1}` : null
+        product.image1_url || null
     );
 
     const { data, setData, post, processing, errors } = useForm({
