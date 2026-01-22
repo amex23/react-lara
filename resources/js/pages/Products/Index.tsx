@@ -99,13 +99,13 @@ export default function Products() {
                                     <TableCell>
                                         {product.image1 ? (
                                             <img 
-                                                src={`/storage/${product.image1}`} 
+                                                src={product.image1} 
                                                 alt={product.name}
                                                 className="w-16 h-16 object-cover rounded"
                                             />
                                         ) : (
                                             <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                                                No image 
+                                                No image
                                             </div>
                                         )}
                                     </TableCell>
@@ -130,3 +130,4 @@ export default function Products() {
         </AppLayout>
     );
 }
+

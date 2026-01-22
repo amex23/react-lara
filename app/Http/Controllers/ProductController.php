@@ -11,8 +11,17 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::all();
-        return Inertia::render('Products/Index', compact('products'));
+        $products = Product::all()->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'price' => $product->price,
+                'description' => $product->description,
+                'image1' => $product->image1 ? Storage::url($product->image1) : null,
+            ];
+        });
+        
+        return Inertia::render('Products/Index', ['products' => $products]);
     }
 
     public function create()
@@ -43,7 +52,16 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        return Inertia::render('Products/Edit', compact('product'));
+        $productData = [
+            'id' => $product->id,
+            'name' => $product->name,
+            'price' => $product->price,
+            'description' => $product->description,
+            'image1' => $product->image1,
+            'image1_url' => $product->image1 ? Storage::url($product->image1) : null,
+        ];
+        
+        return Inertia::render('Products/Edit', ['product' => $productData]);
     }
 
     public function update(Request $request, Product $product)
