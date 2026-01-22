@@ -17,7 +17,7 @@ class ProductController extends Controller
                 'name' => $product->name,
                 'price' => $product->price,
                 'description' => $product->description,
-                'image1' => $product->image1 ? Storage::url($product->image1) : null,
+                'image1' => $product->image1 ? asset('storage/' . $product->image1) : null,
             ];
         });
         
@@ -58,7 +58,7 @@ class ProductController extends Controller
             'price' => $product->price,
             'description' => $product->description,
             'image1' => $product->image1,
-            'image1_url' => $product->image1 ? Storage::url($product->image1) : null,
+            'image1_url' => $product->image1 ? asset('storage/' . $product->image1) : null,
         ];
         
         return Inertia::render('Products/Edit', ['product' => $productData]);
