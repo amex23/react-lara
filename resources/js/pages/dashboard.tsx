@@ -23,14 +23,13 @@ export default function Dashboard() {
                </span>
 
                 <div className="mt-2 grid auto-rows-min gap-4 md:grid-cols-2 items-center">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <h2 className='font-bold text-center mt-3 text-2xl'>Total Clicks: 30</h2>
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                    <div className="">
+                        <h2 className='font-bold text-center mt-3 text-2xl'>Total Views: 30</h2>
                     </div>
 
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <h2 className='font-bold text-center mt-3 text-2xl'>Checkouts: 12</h2>
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                    <div className="">
+                    <h2 className='font-bold text-center mt-3 text-2xl'>Total Checkouts: 12</h2>
+                    
                     </div>
                 </div>
 

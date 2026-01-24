@@ -38,6 +38,16 @@ export function AppSidebar() {
                 },
               ]
             : []),
+
+        ...(auth?.user?.user_type === 'user'
+            ? [
+                {
+                    title: 'User Dashboard',
+                    href: '/products',
+                    icon: PackageSearch,
+                },
+              ]
+            : []),    
     ];
 
     const footerNavItems: NavItem[] = [

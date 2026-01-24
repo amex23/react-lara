@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { route } from 'ziggy-js';
@@ -17,6 +17,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Create() {
+    const { props } = usePage();
+    const authUser = props.authUser;
+
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         price: '',
@@ -34,7 +37,7 @@ export default function Create() {
             setData('image1', e.target.files[0]);
         }
     };
-  
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create a New Product" />
@@ -43,7 +46,6 @@ export default function Create() {
                 <form onSubmit={HandleSubmit} className="space-y-4">
 
                     {/* display error */}
-                  
                     {Object.keys(errors).length > 0 && (
                         <Alert>
                             <CircleAlert className='h-4 w-4' />
@@ -68,25 +70,30 @@ export default function Create() {
                         />
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="price">Price</Label>
-                        <Input
-                            id="price"
-                            placeholder="Price"
-                            value={data.price}
-                            onChange={(e) => setData('price', e.target.value)}
-                        />            
-                    </div>
+                    {/* Hide these fields for normal users */}
+                    {authUser?.user_type !== 'user' && (
+                        <>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="price">Price</Label>
+                                <Input
+                                    id="price"
+                                    placeholder="Price"
+                                    value={data.price}
+                                    onChange={(e) => setData('price', e.target.value)}
+                                />
+                            </div>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                            id="description"
-                            placeholder="Description"
-                            value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
-                        />
-                    </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="description">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    placeholder="Description"
+                                    value={data.description}
+                                    onChange={(e) => setData('description', e.target.value)}
+                                />
+                            </div>
+                        </>
+                    )}
 
                     <div className="space-y-1.5">
                         <Label htmlFor="image1">Product Image</Label>

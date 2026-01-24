@@ -26,19 +26,31 @@ class ProductController extends Controller
 
     public function create()
     {
-        return Inertia::render('Products/Create');
+        return Inertia::render('Products/Create', [
+            'authUser' => auth()->user()
+        ]);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'description' => 'nullable|string',
             'image1' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-        ]);
+        ];
 
-        // Handle image upload
+        if (auth()->user()->user_type !== 'user') {
+            $rules['price'] = 'required|numeric';
+            $rules['description'] = 'nullable|string';
+        }
+
+        $validated = $request->validate($rules);
+
+        // ✅ Add default values for normal user here too
+        if (auth()->user()->user_type === 'user') {
+            $validated['price'] = 0;
+            $validated['description'] = 'N/A';
+        }
+
         if ($request->hasFile('image1')) {
             $validated['image1'] = $request->file('image1')->store('products', 'public');
         }
@@ -66,43 +78,34 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        // Validate the input
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'description' => 'nullable|string',
             'image1' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-        ]);
+        ];
 
-        // Handle image upload
+        if (auth()->user()->user_type !== 'user') {
+            $rules['price'] = 'required|numeric';
+            $rules['description'] = 'nullable|string';
+        }
+
+        $validated = $request->validate($rules);
+
+        if (auth()->user()->user_type === 'user') {
+            $validated['price'] = 0;
+            $validated['description'] = 'N/A';
+        }
+
         if ($request->hasFile('image1')) {
-            // Delete old image if exists
             if ($product->image1) {
                 Storage::disk('public')->delete($product->image1);
             }
             $validated['image1'] = $request->file('image1')->store('products', 'public');
         }
 
-        // Update the product
         $product->update($validated);
 
-        // Redirect back with success message
         return redirect()
             ->route('products.index')
             ->with('message', 'Product updated successfully.');
-    }
-
-    public function destroy(Product $product)
-    {
-        // Delete image if exists
-        if ($product->image1) {
-            Storage::disk('public')->delete($product->image1);
-        }
-
-        $product->delete();
-        
-        return redirect()
-            ->route('products.index')
-            ->with('message', 'Product deleted successfully.');
     }
 }
