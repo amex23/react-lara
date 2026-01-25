@@ -62,6 +62,20 @@ class ProductController extends Controller
             ->with('message', 'Product created successfully.');
     }
 
+    public function destroy(Product $product)
+    {
+        // Optional: Delete the image from storage if it exists
+        if ($product->image1) {
+            Storage::disk('public')->delete($product->image1);
+        }
+
+        $product->delete();
+
+        return redirect()
+            ->route('products.index')
+            ->with('message', 'Product deleted successfully.');
+    }
+
     public function edit(Product $product)
     {
         $productData = [
