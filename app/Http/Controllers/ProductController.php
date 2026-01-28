@@ -13,14 +13,15 @@ class ProductController extends Controller
     {
         $products = Product::all()->map(function ($product) {
             return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'price' => $product->price,
+                'id'          => $product->id,
+                'name'        => $product->name,
+                'price'       => $product->price,
                 'description' => $product->description,
-                'image1' => $product->image1 ? asset('storage/' . $product->image1) : null,
+                'image1'      => $product->image1,  // relative path (stored in DB)
+                'image1_url'  => $product->image1 ? Storage::url($product->image1) : null,
             ];
         });
-        
+
         return Inertia::render('Products/Index', ['products' => $products]);
     }
 
@@ -34,20 +35,20 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'name' => 'required|string|max:255',
-            'image1' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'name'    => 'required|string|max:255',
+            'image1'  => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ];
 
         if (auth()->user()->user_type !== 'user') {
-            $rules['price'] = 'required|numeric';
+            $rules['price']       = 'required|numeric';
             $rules['description'] = 'nullable|string';
         }
 
         $validated = $request->validate($rules);
 
-        // ✅ Add default values for normal user here too
+        // Default values for normal users
         if (auth()->user()->user_type === 'user') {
-            $validated['price'] = 0;
+            $validated['price']       = 0;
             $validated['description'] = 'N/A';
         }
 
@@ -56,7 +57,7 @@ class ProductController extends Controller
         }
 
         Product::create($validated);
-        
+
         return redirect()
             ->route('products.index')
             ->with('message', 'Product created successfully.');
@@ -64,7 +65,6 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        // Optional: Delete the image from storage if it exists
         if ($product->image1) {
             Storage::disk('public')->delete($product->image1);
         }
@@ -79,33 +79,33 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $productData = [
-            'id' => $product->id,
-            'name' => $product->name,
-            'price' => $product->price,
+            'id'          => $product->id,
+            'name'        => $product->name,
+            'price'       => $product->price,
             'description' => $product->description,
-            'image1' => $product->image1,
-            'image1_url' => $product->image1 ? asset('storage/' . $product->image1) : null,
+            'image1'      => $product->image1,  // relative path
+            'image1_url'  => $product->image1 ? Storage::url($product->image1) : null,
         ];
-        
+
         return Inertia::render('Products/Edit', ['product' => $productData]);
     }
 
     public function update(Request $request, Product $product)
     {
         $rules = [
-            'name' => 'required|string|max:255',
-            'image1' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'name'    => 'required|string|max:255',
+            'image1'  => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ];
 
         if (auth()->user()->user_type !== 'user') {
-            $rules['price'] = 'required|numeric';
+            $rules['price']       = 'required|numeric';
             $rules['description'] = 'nullable|string';
         }
 
         $validated = $request->validate($rules);
 
         if (auth()->user()->user_type === 'user') {
-            $validated['price'] = 0;
+            $validated['price']       = 0;
             $validated['description'] = 'N/A';
         }
 
