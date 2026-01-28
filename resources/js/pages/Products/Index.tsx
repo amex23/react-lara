@@ -16,26 +16,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: 'Products',
-    href: '/products',
-  },
-];
-
 interface Product {
   id: number;
   name: string;
   price: number;
   description: string;
+  subscription: boolean;
   image1?: string | null;
   image1_url?: string | null;
+  image2?: string | null;
+  image2_url?: string | null;
+  image3?: string | null;
+  image3_url?: string | null;
+  image4?: string | null;
+  image4_url?: string | null;
+  image5?: string | null;
+  image5_url?: string | null;
+  image6?: string | null;
+  image6_url?: string | null;
 }
 
 interface PageProps {
-  flash: {
-    message?: string;
-  };
+  flash: { message?: string };
   products: Product[];
 }
 
@@ -51,7 +53,7 @@ export default function Products() {
   };
 
   return (
-    <AppLayout breadcrumbs={breadcrumbs}>
+    <AppLayout breadcrumbs={[{ title: 'Products', href: '/products' }]}>
       <Head title="Products" />
 
       <div className="m-4">
@@ -77,11 +79,12 @@ export default function Products() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]">ID</TableHead>
-                <TableHead>Image</TableHead>
-                <TableHead>Image URL</TableHead>
+                <TableHead>Images</TableHead>
+                <TableHead>Image URLs</TableHead>
                 <TableHead>Store Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Description</TableHead>
+                <TableHead>Subscription</TableHead>
                 <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -91,29 +94,45 @@ export default function Products() {
                   <TableCell className="font-medium">{product.id}</TableCell>
 
                   <TableCell>
-                    {product.image1_url ? (
-                      <img
-                        src={product.image1_url}
-                        alt={product.name}
-                        className="w-16 h-16 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder-no-image.png'; // fallback
-                        }}
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                        No image
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {product.image1_url && (
+                        <img src={product.image1_url} alt="Image 1" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      {product.image2_url && (
+                        <img src={product.image2_url} alt="Image 2" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      {product.image3_url && (
+                        <img src={product.image3_url} alt="Image 3" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      {product.image4_url && (
+                        <img src={product.image4_url} alt="Image 4" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      {product.image5_url && (
+                        <img src={product.image5_url} alt="Image 5" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      {product.image6_url && (
+                        <img src={product.image6_url} alt="Image 6" className="w-12 h-12 object-cover rounded" />
+                      )}
+                      {!product.image1_url && !product.image2_url && !product.image3_url &&
+                       !product.image4_url && !product.image5_url && !product.image6_url && (
+                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
+                          No images
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell className="max-w-xs truncate">
-                    {product.image1_url || 'No image'}
+                    {product.image1_url || product.image2_url || product.image3_url ||
+                     product.image4_url || product.image5_url || product.image6_url
+                      ? 'Multiple images'
+                      : 'No images'}
                   </TableCell>
 
                   <TableCell>{product.name}</TableCell>
                   <TableCell>{product.price}</TableCell>
                   <TableCell>{product.description}</TableCell>
+                  <TableCell>{product.subscription ? 'Yes' : 'No'}</TableCell>
 
                   <TableCell className="text-center space-x-2">
                     <Link href={route('products.edit', product.id)}>

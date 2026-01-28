@@ -13,12 +13,23 @@ class ProductController extends Controller
     {
         $products = Product::all()->map(function ($product) {
             return [
-                'id'          => $product->id,
-                'name'        => $product->name,
-                'price'       => $product->price,
-                'description' => $product->description,
-                'image1'      => $product->image1,  // relative path (stored in DB)
-                'image1_url'  => $product->image1 ? Storage::url($product->image1) : null,
+                'id'           => $product->id,
+                'name'         => $product->name,
+                'price'        => $product->price,
+                'description'  => $product->description,
+                'subscription' => $product->subscription,
+                'image1'       => $product->image1,
+                'image1_url'   => $product->image1 ? Storage::url($product->image1) : null,
+                'image2'       => $product->image2,
+                'image2_url'   => $product->image2 ? Storage::url($product->image2) : null,
+                'image3'       => $product->image3,
+                'image3_url'   => $product->image3 ? Storage::url($product->image3) : null,
+                'image4'       => $product->image4,
+                'image4_url'   => $product->image4 ? Storage::url($product->image4) : null,
+                'image5'       => $product->image5,
+                'image5_url'   => $product->image5 ? Storage::url($product->image5) : null,
+                'image6'       => $product->image6,
+                'image6_url'   => $product->image6 ? Storage::url($product->image6) : null,
             ];
         });
 
@@ -35,8 +46,14 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'name'    => 'required|string|max:255',
-            'image1'  => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'name'         => 'required|string|max:255',
+            'image1'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image2'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image3'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image4'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image5'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image6'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'subscription' => 'boolean',
         ];
 
         if (auth()->user()->user_type !== 'user') {
@@ -46,45 +63,45 @@ class ProductController extends Controller
 
         $validated = $request->validate($rules);
 
-        // Default values for normal users
         if (auth()->user()->user_type === 'user') {
             $validated['price']       = 0;
             $validated['description'] = 'N/A';
+            $validated['subscription'] = false;
         }
 
-        if ($request->hasFile('image1')) {
-            $validated['image1'] = $request->file('image1')->store('products', 'public');
+        // Handle multiple image uploads
+        foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
+            if ($request->hasFile($key)) {
+                $validated[$key] = $request->file($key)->store('products', 'public');
+            }
         }
 
         Product::create($validated);
 
-        return redirect()
-            ->route('products.index')
+        return redirect()->route('products.index')
             ->with('message', 'Product created successfully.');
-    }
-
-    public function destroy(Product $product)
-    {
-        if ($product->image1) {
-            Storage::disk('public')->delete($product->image1);
-        }
-
-        $product->delete();
-
-        return redirect()
-            ->route('products.index')
-            ->with('message', 'Product deleted successfully.');
     }
 
     public function edit(Product $product)
     {
         $productData = [
-            'id'          => $product->id,
-            'name'        => $product->name,
-            'price'       => $product->price,
-            'description' => $product->description,
-            'image1'      => $product->image1,  // relative path
-            'image1_url'  => $product->image1 ? Storage::url($product->image1) : null,
+            'id'           => $product->id,
+            'name'         => $product->name,
+            'price'        => $product->price,
+            'description'  => $product->description,
+            'subscription' => $product->subscription,
+            'image1'       => $product->image1,
+            'image1_url'   => $product->image1 ? Storage::url($product->image1) : null,
+            'image2'       => $product->image2,
+            'image2_url'   => $product->image2 ? Storage::url($product->image2) : null,
+            'image3'       => $product->image3,
+            'image3_url'   => $product->image3 ? Storage::url($product->image3) : null,
+            'image4'       => $product->image4,
+            'image4_url'   => $product->image4 ? Storage::url($product->image4) : null,
+            'image5'       => $product->image5,
+            'image5_url'   => $product->image5 ? Storage::url($product->image5) : null,
+            'image6'       => $product->image6,
+            'image6_url'   => $product->image6 ? Storage::url($product->image6) : null,
         ];
 
         return Inertia::render('Products/Edit', ['product' => $productData]);
@@ -93,8 +110,22 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $rules = [
-            'name'    => 'required|string|max:255',
-            'image1'  => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'name'         => 'required|string|max:255',
+            'image1'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image2'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image3'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image4'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image5'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'image6'       => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'subscription' => 'boolean',
+
+            // Flags for explicit removal
+            'remove_image1' => 'boolean',
+            'remove_image2' => 'boolean',
+            'remove_image3' => 'boolean',
+            'remove_image4' => 'boolean',
+            'remove_image5' => 'boolean',
+            'remove_image6' => 'boolean',
         ];
 
         if (auth()->user()->user_type !== 'user') {
@@ -107,19 +138,51 @@ class ProductController extends Controller
         if (auth()->user()->user_type === 'user') {
             $validated['price']       = 0;
             $validated['description'] = 'N/A';
+            $validated['subscription'] = false;
         }
 
-        if ($request->hasFile('image1')) {
-            if ($product->image1) {
-                Storage::disk('public')->delete($product->image1);
+        // Handle image updates / removals individually
+        foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
+            $removeKey = "remove_{$key}";
+
+            if ($request->hasFile($key)) {
+                // New file uploaded → replace old one
+                if ($product->$key) {
+                    Storage::disk('public')->delete($product->$key);
+                }
+                $validated[$key] = $request->file($key)->store('products', 'public');
+            } elseif ($validated[$removeKey] ?? false) {
+                // Explicit remove requested
+                if ($product->$key) {
+                    Storage::disk('public')->delete($product->$key);
+                }
+                $validated[$key] = null;
             }
-            $validated['image1'] = $request->file('image1')->store('products', 'public');
+            // If neither new file nor remove flag → do NOT touch this field (keeps existing value)
+            else {
+                unset($validated[$key]); // prevent overwriting with null
+            }
         }
 
         $product->update($validated);
 
-        return redirect()
-            ->route('products.index')
+        return redirect()->route('products.index')
             ->with('message', 'Product updated successfully.');
+    }
+
+   
+
+    public function destroy(Product $product)
+    {
+        foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
+            if ($product->$key) {
+                Storage::disk('public')->delete($product->$key);
+            }
+        }
+
+        $product->delete();
+
+        return redirect()->route('products.index')
+            ->with('message', 'Product deleted successfully.');
     }
 }
