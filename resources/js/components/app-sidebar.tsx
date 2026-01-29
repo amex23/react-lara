@@ -22,11 +22,11 @@ export function AppSidebar() {
     };
 
     const mainNavItems: NavItem[] = [
-        {
-            title: 'Dashboard',
-            href: dashboard(),
-            icon: LayoutGrid,
-        },
+        // {
+        //     title: 'Dashboard',
+        //     href: dashboard(),
+        //     icon: LayoutGrid,
+        // },
 
         // ✅ Show ONLY if user_type is admin
         ...(auth?.user?.user_type === 'admin'
@@ -42,7 +42,7 @@ export function AppSidebar() {
         ...(auth?.user?.user_type === 'user'
             ? [
                 {
-                    title: 'User Dashboard',
+                    title: 'Dashboard',
                     href: '/products',
                     icon: PackageSearch,
                 },

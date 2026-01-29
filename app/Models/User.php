@@ -23,6 +23,11 @@ class User extends Authenticatable
         'email',
         'password',
         'user_type', // ✅ REQUIRED so admin can be saved
+        'store_name',       // ← renamed for clarity (was 'name' on product)
+        'price',
+        'description',
+        'image1','image2','image3','image4','image5','image6',
+        'subscription',
     ];
 
     /**

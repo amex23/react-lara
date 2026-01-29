@@ -20,15 +20,18 @@ export default function Create() {
 
     const { data, setData, post, processing, errors } = useForm({
         name: '',
-        price: '',
-        description: '',
-        image1: null as File | null,
-        image2: null as File | null,
-        image3: null as File | null,
-        image4: null as File | null,
-        image5: null as File | null,
-        image6: null as File | null,
-        subscription: false,
+        // The following fields are only for admins (ideally should be in profile settings)
+        ...(authUser?.user_type !== 'user' && {
+            price: '',
+            description: '',
+            image1: null as File | null,
+            image2: null as File | null,
+            image3: null as File | null,
+            image4: null as File | null,
+            image5: null as File | null,
+            image6: null as File | null,
+            subscription: false,
+        }),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -49,7 +52,6 @@ export default function Create() {
             <div className="w-8/12 p-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
 
-                    {/* Errors */}
                     {Object.keys(errors).length > 0 && (
                         <Alert variant="destructive">
                             <CircleAlert className="h-4 w-4" />
@@ -68,7 +70,7 @@ export default function Create() {
                         <Label htmlFor="name">Store URL/Name</Label>
                         <Input
                             id="name"
-                            placeholder="Product Name"
+                            placeholder="Store Name or Product Identifier"
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
                         />
@@ -80,6 +82,8 @@ export default function Create() {
                                 <Label htmlFor="price">Price</Label>
                                 <Input
                                     id="price"
+                                    type="number"
+                                    step="0.01"
                                     placeholder="Price"
                                     value={data.price}
                                     onChange={(e) => setData('price', e.target.value)}
@@ -90,41 +94,39 @@ export default function Create() {
                                 <Label htmlFor="description">Description</Label>
                                 <Textarea
                                     id="description"
-                                    placeholder="Description"
+                                    placeholder="Store / Product Description"
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                 />
                             </div>
 
-                            {/* Subscription Checkbox */}
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="subscription"
                                     checked={data.subscription}
                                     onCheckedChange={(checked) => setData('subscription', !!checked)}
                                 />
-                                <Label htmlFor="subscription">Subscription Product</Label>
+                                <Label htmlFor="subscription">Subscription Product / Service</Label>
                             </div>
+
+                            {['image1', 'image2', 'image3', 'image4', 'image5', 'image6'].map((key, index) => (
+                                <div key={key} className="space-y-1.5">
+                                    <Label htmlFor={key}>Store Image {index + 1}</Label>
+                                    <Input
+                                        id={key}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleImageChange(e, key)}
+                                    />
+                                    {data[key] && (
+                                        <p className="text-sm text-muted-foreground">
+                                            Selected: {data[key]?.name}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
                         </>
                     )}
-
-                    {/* Image Uploads */}
-                    {['image1', 'image2', 'image3', 'image4', 'image5', 'image6'].map((key, index) => (
-                        <div key={key} className="space-y-1.5">
-                            <Label htmlFor={key}>Product Image {index + 1}</Label>
-                            <Input
-                                id={key}
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleImageChange(e, key)}
-                            />
-                            {data[key] && (
-                                <p className="text-sm text-muted-foreground">
-                                    Selected: {data[key]?.name}
-                                </p>
-                            )}
-                        </div>
-                    ))}
 
                     <Button type="submit" disabled={processing}>
                         Add Product

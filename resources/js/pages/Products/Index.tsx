@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Head, Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
 import { route } from 'ziggy-js';
 import { usePage, useForm } from '@inertiajs/react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,35 +18,40 @@ import {
 interface Product {
   id: number;
   name: string;
-  price: number;
-  description: string;
-  subscription: boolean;
-  image1?: string | null;
+  user_id: number;
+  owner_name?: string;           // only useful for admin view
+  price?: number | null;
+  description?: string | null;
+  subscription?: boolean;
   image1_url?: string | null;
-  image2?: string | null;
   image2_url?: string | null;
-  image3?: string | null;
   image3_url?: string | null;
-  image4?: string | null;
   image4_url?: string | null;
-  image5?: string | null;
   image5_url?: string | null;
-  image6?: string | null;
   image6_url?: string | null;
 }
 
+interface AuthUser {
+  id: number;
+  name: string;
+  user_type: 'user' | 'admin';
+}
+
 interface PageProps {
-  flash: { message?: string };
+  flash?: { message?: string };
   products: Product[];
+  authUser: AuthUser;
 }
 
 export default function Products() {
-  const { products, flash } = usePage<PageProps>().props;
+  const { products, flash, authUser } = usePage<PageProps>().props;
+
+  const isAdmin = authUser?.user_type === 'admin';
 
   const { processing, delete: destroy } = useForm();
 
   const handleDelete = (id: number, name: string) => {
-    if (confirm(`Are you sure you want to delete the product: ${name} (ID: ${id})?`)) {
+    if (confirm(`Delete "${name}" (ID: ${id})?`)) {
       destroy(route('products.destroy', id));
     }
   };
@@ -56,36 +60,52 @@ export default function Products() {
     <AppLayout breadcrumbs={[{ title: 'Products', href: '/products' }]}>
       <Head title="Products" />
 
-      <div className="m-4">
-        <Link href={route('products.create')}>
-          <Button>Create a product</Button>
-        </Link>
-      </div>
+      <div className="m-4 flex items-center justify-between">
+         {isAdmin && (
+            <Link href={route('products.create')}>
+                <Button>Create product</Button>
+            </Link>
+         )}
 
-      <div className="m-4">
-        {flash.message && (
-          <Alert>
-            <Megaphone className="h-4 w-4" />
-            <AlertTitle>Notification</AlertTitle>
-            <AlertDescription>{flash.message}</AlertDescription>
-          </Alert>
+        {isAdmin && products.length > 0 && (
+          <span className="text-sm text-muted-foreground">
+            Showing all {products.length} products from all stores
+          </span>
         )}
       </div>
 
-      {products.length > 0 && (
+      {flash?.message && (
         <div className="m-4">
+          <Alert>
+            <Megaphone className="h-4 w-4" />
+            <AlertTitle>Info</AlertTitle>
+            <AlertDescription>{flash.message}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {products.length === 0 ? (
+        <div className="m-8 text-center text-muted-foreground">
+          {isAdmin
+            ? "No products exist in the system yet."
+            : "You haven't created any products yet."}
+        </div>
+      ) : (
+        <div className="m-4 overflow-x-auto">
           <Table>
-            <TableCaption>A list of your recent products.</TableCaption>
+            <TableCaption>
+              {isAdmin ? 'All products (all stores)' : 'Your products'}
+            </TableCaption>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[100px]">ID</TableHead>
+                <TableHead className="w-16">ID</TableHead>
+                {isAdmin && <TableHead className="w-36">Store Owner</TableHead>}
                 <TableHead>Images</TableHead>
-                <TableHead>Image URLs</TableHead>
                 <TableHead>Store Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Subscription</TableHead>
-                <TableHead className="text-center">Action</TableHead>
+                <TableHead className="text-center w-44">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,55 +113,63 @@ export default function Products() {
                 <TableRow key={product.id}>
                   <TableCell className="font-medium">{product.id}</TableCell>
 
+                  {isAdmin && (
+                    <TableCell className="text-sm">
+                      {product.owner_name || `User #${product.user_id}`}
+                    </TableCell>
+                  )}
+
                   <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      {product.image1_url && (
-                        <img src={product.image1_url} alt="Image 1" className="w-12 h-12 object-cover rounded" />
-                      )}
-                      {product.image2_url && (
-                        <img src={product.image2_url} alt="Image 2" className="w-12 h-12 object-cover rounded" />
-                      )}
-                      {product.image3_url && (
-                        <img src={product.image3_url} alt="Image 3" className="w-12 h-12 object-cover rounded" />
-                      )}
-                      {product.image4_url && (
-                        <img src={product.image4_url} alt="Image 4" className="w-12 h-12 object-cover rounded" />
-                      )}
-                      {product.image5_url && (
-                        <img src={product.image5_url} alt="Image 5" className="w-12 h-12 object-cover rounded" />
-                      )}
-                      {product.image6_url && (
-                        <img src={product.image6_url} alt="Image 6" className="w-12 h-12 object-cover rounded" />
-                      )}
-                      {!product.image1_url && !product.image2_url && !product.image3_url &&
-                       !product.image4_url && !product.image5_url && !product.image6_url && (
-                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                          No images
+                    <div className="flex flex-wrap gap-1.5 max-w-[160px]">
+                      {[1,2,3,4,5,6].map((i) => {
+                        const key = `image${i}_url` as keyof Product;
+                        return product[key] ? (
+                          <img
+                            key={i}
+                            src={product[key] as string}
+                            alt={`Store image ${i}`}
+                            className="w-9 h-9 object-cover rounded border"
+                          />
+                        ) : null;
+                      })}
+
+                      {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                        <div className="w-9 h-9 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                          no img
                         </div>
                       )}
                     </div>
                   </TableCell>
 
-                  <TableCell className="max-w-xs truncate">
-                    {product.image1_url || product.image2_url || product.image3_url ||
-                     product.image4_url || product.image5_url || product.image6_url
-                      ? 'Multiple images'
-                      : 'No images'}
+                  <TableCell className="font-medium">{product.name}</TableCell>
+
+                  <TableCell>
+                    {product.price != null
+                      ? `$${Number(product.price).toFixed(2)}`
+                      : '—'}
                   </TableCell>
 
-                  <TableCell>{product.name}</TableCell>
-                  <TableCell>{product.price}</TableCell>
-                  <TableCell>{product.description}</TableCell>
-                  <TableCell>{product.subscription ? 'Yes' : 'No'}</TableCell>
+                  <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                    {product.description || '—'}
+                  </TableCell>
+
+                  <TableCell>
+                    {product.subscription ? (
+                      <span className="text-green-600 font-medium">Yes</span>
+                    ) : (
+                      <span className="text-slate-400">No</span>
+                    )}
+                  </TableCell>
 
                   <TableCell className="text-center space-x-2">
                     <Link href={route('products.edit', product.id)}>
-                      <Button className="bg-slate-600 hover:bg-slate-700">Edit</Button>
+                      <Button size="sm" variant="outline">Edit</Button>
                     </Link>
                     <Button
+                      size="sm"
+                      variant="destructive"
                       disabled={processing}
                       onClick={() => handleDelete(product.id, product.name)}
-                      className="bg-red-500 hover:bg-red-700"
                     >
                       Delete
                     </Button>

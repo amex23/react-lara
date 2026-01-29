@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { route } from 'ziggy-js';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -13,21 +13,15 @@ import { useState } from 'react';
 interface Product {
     id: number;
     name: string;
-    price: number;
-    description: string;
-    subscription: boolean;
-    image1?: string;
-    image1_url?: string;
-    image2?: string;
-    image2_url?: string;
-    image3?: string;
-    image3_url?: string;
-    image4?: string;
-    image4_url?: string;
-    image5?: string;
-    image5_url?: string;
-    image6?: string;
-    image6_url?: string;
+    price?: number | null;
+    description?: string | null;
+    subscription?: boolean;
+    image1_url?: string | null;
+    image2_url?: string | null;
+    image3_url?: string | null;
+    image4_url?: string | null;
+    image5_url?: string | null;
+    image6_url?: string | null;
 }
 
 interface Props {
@@ -35,6 +29,11 @@ interface Props {
 }
 
 export default function Edit({ product }: Props) {
+    const { authUser } = usePage().props as { authUser?: { user_type: string } };
+
+    const isAdmin = authUser?.user_type === 'admin';
+    const isUser = authUser?.user_type === 'user';
+
     const [previews, setPreviews] = useState<Record<string, string | null>>({
         image1: product.image1_url || null,
         image2: product.image2_url || null,
@@ -45,10 +44,13 @@ export default function Edit({ product }: Props) {
     });
 
     const { data, setData, post, processing, errors } = useForm({
-        name: product.name,
-        price: product.price,
-        description: product.description,
-        subscription: product.subscription,
+        name: product.name || '',
+        description: product.description ?? '',
+        // Fields only for admins or users who are allowed to edit them
+        ...(isAdmin && {
+            price: product.price ?? '',
+            subscription: product.subscription ?? false,
+        }),
         image1: null as File | null,
         image2: null as File | null,
         image3: null as File | null,
@@ -70,7 +72,7 @@ export default function Edit({ product }: Props) {
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-        if (e.target.files && e.target.files[0]) {
+        if (e.target.files?.[0]) {
             const file = e.target.files[0];
             setData(key as any, file);
 
@@ -80,7 +82,6 @@ export default function Edit({ product }: Props) {
             };
             reader.readAsDataURL(file);
 
-            // If uploading new image, clear remove flag
             setData(`remove_${key}` as any, false);
         }
     };
@@ -92,18 +93,18 @@ export default function Edit({ product }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Edit a Product', href: `/products/${product.id}/edit` }]}>
-            <Head title="Update a Product" />
+        <AppLayout breadcrumbs={[{ title: 'Edit Product', href: `/products/${product.id}/edit` }]}>
+            <Head title="Update Product" />
 
             <div className="w-8/12 p-4">
-                <form onSubmit={handleUpdate} className="space-y-4">
+                <form onSubmit={handleUpdate} encType="multipart/form-data" className="space-y-6">
 
                     {Object.keys(errors).length > 0 && (
                         <Alert variant="destructive">
                             <CircleAlert className="h-4 w-4" />
                             <AlertTitle>Errors!</AlertTitle>
                             <AlertDescription>
-                                <ul>
+                                <ul className="list-disc pl-5">
                                     {Object.entries(errors).map(([key, message]) => (
                                         <li key={key}>{message as string}</li>
                                     ))}
@@ -112,39 +113,78 @@ export default function Edit({ product }: Props) {
                         </Alert>
                     )}
 
-                    {/* Name, Price, Description, Subscription fields remain the same */}
-
+                    {/* Always editable: Name */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name">Store / Product Name</Label>
                         <Input
                             id="name"
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
                         />
+                        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                     </div>
 
-                    {/* ... price, description, subscription checkbox ... */}
+                    {/* Description - editable by both admins and users */}
+                    <div className="space-y-1.5">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                            id="description"
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                            placeholder="Describe your store or product..."
+                        />
+                        {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
+                    </div>
 
-                    {/* Image Fields */}
+                    {/* Price - only visible/editable for admins */}
+                    {isAdmin && (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="price">Price</Label>
+                            <Input
+                                id="price"
+                                type="number"
+                                step="0.01"
+                                value={data.price}
+                                onChange={(e) => setData('price', e.target.value)}
+                            />
+                            {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
+                        </div>
+                    )}
+
+                    {/* Subscription - only visible for admins (read-only or editable depending on your rule) */}
+                    {isAdmin && (
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="subscription"
+                                checked={data.subscription}
+                                onCheckedChange={(checked) => setData('subscription', !!checked)}
+                            />
+                            <Label htmlFor="subscription" className="cursor-pointer">
+                                Subscription Product
+                            </Label>
+                        </div>
+                    )}
+
+                    {/* Images - editable by both admins and normal users */}
                     {['image1', 'image2', 'image3', 'image4', 'image5', 'image6'].map((key, index) => (
                         <div key={key} className="space-y-1.5">
-                            <Label htmlFor={key}>Product Image {index + 1}</Label>
+                            <Label htmlFor={key}>Store Image {index + 1}</Label>
 
                             {previews[key] && (
-                                <div className="mb-3">
+                                <div className="mb-4 relative inline-block">
                                     <img
                                         src={previews[key]!}
                                         alt={`Preview ${index + 1}`}
-                                        className="w-32 h-32 object-cover rounded border"
+                                        className="w-32 h-32 object-cover rounded border shadow-sm"
                                     />
                                     <Button
                                         type="button"
                                         variant="destructive"
                                         size="sm"
-                                        className="mt-2"
+                                        className="absolute top-1 right-1"
                                         onClick={() => handleRemoveImage(key)}
                                     >
-                                        Remove Image
+                                        ×
                                     </Button>
                                 </div>
                             )}
@@ -155,17 +195,22 @@ export default function Edit({ product }: Props) {
                                 accept="image/*"
                                 onChange={(e) => handleImageChange(e, key)}
                             />
+
                             {data[key] && (
                                 <p className="text-sm text-muted-foreground">
-                                    New image selected: {data[key]?.name}
+                                    New file: {data[key]?.name}
                                 </p>
                             )}
+
+                            {errors[key] && <p className="text-sm text-destructive">{errors[key]}</p>}
                         </div>
                     ))}
 
-                    <Button type="submit" disabled={processing}>
-                        Update Product
-                    </Button>
+                    <div className="pt-6">
+                        <Button type="submit" disabled={processing} className="w-full sm:w-auto">
+                            {processing ? 'Updating...' : 'Update Product'}
+                        </Button>
+                    </div>
                 </form>
             </div>
         </AppLayout>

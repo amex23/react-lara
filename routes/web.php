@@ -33,9 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Admin-only routes
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
-    // ===============================
     // ADMIN REGISTRATION
-    // ===============================
     Route::get('/register-admin', [AdminRegisterController::class, 'create'])
         ->name('register.admin');
 
