@@ -19,7 +19,7 @@ interface Product {
   id: number;
   name: string;
   user_id: number;
-  owner_name?: string;           // only useful for admin view
+  owner_name?: string;
   price?: number | null;
   description?: string | null;
   subscription?: boolean;
@@ -61,11 +61,9 @@ export default function Products() {
       <Head title="Products" />
 
       <div className="m-4 flex items-center justify-between">
-         {isAdmin && (
-            <Link href={route('products.create')}>
-                <Button>Create product</Button>
-            </Link>
-         )}
+        <Link href={route('products.create')}>
+          <Button>Create product</Button>
+        </Link>
 
         {isAdmin && products.length > 0 && (
           <span className="text-sm text-muted-foreground">
@@ -78,14 +76,14 @@ export default function Products() {
         <div className="m-4">
           <Alert>
             <Megaphone className="h-4 w-4" />
-            <AlertTitle>Info</AlertTitle>
+            <AlertTitle>Notification</AlertTitle>
             <AlertDescription>{flash.message}</AlertDescription>
           </Alert>
         </div>
       )}
 
       {products.length === 0 ? (
-        <div className="m-8 text-center text-muted-foreground">
+        <div className="m-8 text-center text-muted-foreground py-10">
           {isAdmin
             ? "No products exist in the system yet."
             : "You haven't created any products yet."}
@@ -143,16 +141,19 @@ export default function Products() {
 
                   <TableCell className="font-medium">{product.name}</TableCell>
 
+                  {/* Always show real price (no isAdmin check) */}
                   <TableCell>
                     {product.price != null
                       ? `$${Number(product.price).toFixed(2)}`
                       : '—'}
                   </TableCell>
 
+                  {/* Always show real description */}
                   <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
                     {product.description || '—'}
                   </TableCell>
 
+                  {/* Always show real subscription */}
                   <TableCell>
                     {product.subscription ? (
                       <span className="text-green-600 font-medium">Yes</span>

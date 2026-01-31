@@ -14,11 +14,9 @@ class ProductController extends Controller
     {
         $query = Product::with('user');
 
-        // Normal users see only their own products
         if (Auth::user()->user_type === 'user') {
             $query->where('user_id', Auth::id());
         }
-        // Admins see ALL products
 
         $products = $query->get()->map(function ($product) {
             $owner = $product->user;
@@ -29,7 +27,6 @@ class ProductController extends Controller
                 'user_id'      => $product->user_id,
                 'owner_name'   => $owner?->name ?? 'Unknown',
 
-                // These now correctly come from the user (store owner)
                 'price'        => $owner?->price ?? null,
                 'description'  => $owner?->description ?? null,
                 'subscription' => $owner?->subscription ?? false,
@@ -55,45 +52,51 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Only create product name + owner
-     * → Store profile (price/images/etc) should be updated in separate place
-     */
     public function store(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    $rules = [
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string|max:3000',
-        'image1' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        // ... same image rules as above
-    ];
+        $rules = [
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string|max:3000',
+            'image1'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image2'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image3'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image4'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image5'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image6'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+        ];
 
-    if ($user->user_type === 'admin') {
-        $rules['price'] = 'nullable|numeric|min:0';
-        $rules['subscription'] = 'boolean';
+        $validated = $request->validate($rules);
+
+        // Create product
+        Product::create([
+            'name'    => $validated['name'],
+            'user_id' => $user->id,
+        ]);
+
+        // Update user's store profile
+        $updates = [];
+        if (isset($validated['description'])) {
+            $updates['description'] = $validated['description'];
+        }
+
+        foreach (['image1','image2','image3','image4','image5','image6'] as $key) {
+            if ($request->hasFile($key)) {
+                if ($user->$key) {
+                    Storage::disk('public')->delete($user->$key);
+                }
+                $updates[$key] = $request->file($key)->store('store-images', 'public');
+            }
+        }
+
+        if (!empty($updates)) {
+            $user->update($updates);
+        }
+
+        return redirect()->route('products.index')
+            ->with('message', 'Product created and store profile updated.');
     }
-
-    $validated = $request->validate($rules);
-
-    // Create product
-    $product = Product::create([
-        'name'    => $validated['name'],
-        'user_id' => Auth::id(),
-    ]);
-
-    // Update user's store profile (same logic as update)
-    $storeUpdates = [];
-    // ... copy the exact same store update logic from update() above
-
-    if (!empty($storeUpdates)) {
-        $user->update($storeUpdates);
-    }
-
-    return redirect()->route('products.index')
-        ->with('message', 'Product & store created successfully.');
-}
 
     public function edit(Product $product)
     {
@@ -105,8 +108,6 @@ class ProductController extends Controller
             'product' => [
                 'id'           => $product->id,
                 'name'         => $product->name,
-
-                // These come from user (store owner)
                 'price'        => $owner?->price,
                 'description'  => $owner?->description,
                 'subscription' => $owner?->subscription,
@@ -121,95 +122,52 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * Only update product name
-     * → Store profile should be updated in separate page
-     */
     public function update(Request $request, Product $product)
-{
-    $this->authorizeProduct($product);
+    {
+        $this->authorizeProduct($product);
 
-    $user = Auth::user();
-    $productOwner = $product->user; // The store owner whose profile we're editing
+        $owner = $product->user;
 
-    // Base validation (everyone)
-    $rules = [
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string|max:3000',
-        'image1' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        'image2' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        'image3' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        'image4' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        'image5' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        'image6' => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        'remove_image1' => 'boolean',
-        'remove_image2' => 'boolean',
-        'remove_image3' => 'boolean',
-        'remove_image4' => 'boolean',
-        'remove_image5' => 'boolean',
-        'remove_image6' => 'boolean',
-    ];
+        $rules = [
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string|max:3000',
+            'image1'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image2'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image3'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image4'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image5'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image6'      => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+        ];
 
-    // Admins get price + subscription
-    if ($user->user_type === 'admin') {
-        $rules['price'] = 'nullable|numeric|min:0';
-        $rules['subscription'] = 'boolean';
-    }
+        $validated = $request->validate($rules);
 
-    $validated = $request->validate($rules);
+        $product->update(['name' => $validated['name']]);
 
-    // Always update product name
-    $product->update(['name' => $validated['name']]);
+        $updates = [];
+        if (isset($validated['description'])) {
+            $updates['description'] = $validated['description'];
+        }
 
-    // Update store profile (product owner's user record)
-    $storeUpdates = [];
-
-    // Description (everyone)
-    if (isset($validated['description'])) {
-        $storeUpdates['description'] = $validated['description'];
-    }
-
-    // Images (everyone)
-    foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
-        $removeKey = "remove_{$key}";
-        if ($request->hasFile($key)) {
-            // Delete old
-            if ($productOwner->{$key}) {
-                Storage::disk('public')->delete($productOwner->{$key});
+        foreach (['image1','image2','image3','image4','image5','image6'] as $key) {
+            if ($request->hasFile($key)) {
+                if ($owner->$key) {
+                    Storage::disk('public')->delete($owner->$key);
+                }
+                $updates[$key] = $request->file($key)->store('store-images', 'public');
             }
-            $storeUpdates[$key] = $request->file($key)->store('store-images', 'public');
-        } elseif (isset($validated[$removeKey]) && $validated[$removeKey]) {
-            // Remove image
-            if ($productOwner->{$key}) {
-                Storage::disk('public')->delete($productOwner->{$key});
-            }
-            $storeUpdates[$key] = null;
         }
-    }
 
-    // Price + subscription (admins only)
-    if ($user->user_type === 'admin') {
-        if (isset($validated['price'])) {
-            $storeUpdates['price'] = $validated['price'];
+        if (!empty($updates)) {
+            $owner->update($updates);
         }
-        if (isset($validated['subscription'])) {
-            $storeUpdates['subscription'] = $validated['subscription'];
-        }
-    }
 
-    // Save store profile if any changes
-    if (!empty($storeUpdates)) {
-        $productOwner->update($storeUpdates);
+        return redirect()->route('products.index')
+            ->with('message', 'Product & store profile updated.');
     }
-
-    return redirect()->route('products.index')
-        ->with('message', 'Product & store updated successfully.');
-}
 
     public function destroy(Product $product)
     {
         $this->authorizeProduct($product);
-
         $product->delete();
 
         return redirect()->route('products.index')

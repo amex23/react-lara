@@ -18,18 +18,19 @@ export default function Create() {
     const { props } = usePage();
     const authUser = props.authUser;
 
+    const isAdmin = authUser?.user_type !== 'user';
+
     const { data, setData, post, processing, errors } = useForm({
         name: '',
-        // The following fields are only for admins (ideally should be in profile settings)
-        ...(authUser?.user_type !== 'user' && {
+        description: '',
+        image1: null as File | null,
+        image2: null as File | null,
+        image3: null as File | null,
+        image4: null as File | null,
+        image5: null as File | null,
+        image6: null as File | null,
+        ...(isAdmin && {
             price: '',
-            description: '',
-            image1: null as File | null,
-            image2: null as File | null,
-            image3: null as File | null,
-            image4: null as File | null,
-            image5: null as File | null,
-            image6: null as File | null,
             subscription: false,
         }),
     });
@@ -50,7 +51,7 @@ export default function Create() {
             <Head title="Create a New Product" />
 
             <div className="w-8/12 p-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-4">
 
                     {Object.keys(errors).length > 0 && (
                         <Alert variant="destructive">
@@ -76,7 +77,17 @@ export default function Create() {
                         />
                     </div>
 
-                    {authUser?.user_type !== 'user' && (
+                    <div className="space-y-1.5">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                            id="description"
+                            placeholder="Store / Product Description"
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                        />
+                    </div>
+
+                    {isAdmin && (
                         <>
                             <div className="space-y-1.5">
                                 <Label htmlFor="price">Price</Label>
@@ -90,16 +101,6 @@ export default function Create() {
                                 />
                             </div>
 
-                            <div className="space-y-1.5">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea
-                                    id="description"
-                                    placeholder="Store / Product Description"
-                                    value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
-                                />
-                            </div>
-
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="subscription"
@@ -108,25 +109,25 @@ export default function Create() {
                                 />
                                 <Label htmlFor="subscription">Subscription Product / Service</Label>
                             </div>
-
-                            {['image1', 'image2', 'image3', 'image4', 'image5', 'image6'].map((key, index) => (
-                                <div key={key} className="space-y-1.5">
-                                    <Label htmlFor={key}>Store Image {index + 1}</Label>
-                                    <Input
-                                        id={key}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => handleImageChange(e, key)}
-                                    />
-                                    {data[key] && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Selected: {data[key]?.name}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
                         </>
                     )}
+
+                    {['image1', 'image2', 'image3', 'image4', 'image5', 'image6'].map((key, index) => (
+                        <div key={key} className="space-y-1.5">
+                            <Label htmlFor={key}>Store Image {index + 1}</Label>
+                            <Input
+                                id={key}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleImageChange(e, key)}
+                            />
+                            {data[key] && (
+                                <p className="text-sm text-muted-foreground">
+                                    Selected: {data[key]?.name}
+                                </p>
+                            )}
+                        </div>
+                    ))}
 
                     <Button type="submit" disabled={processing}>
                         Add Product
@@ -136,3 +137,4 @@ export default function Create() {
         </AppLayout>
     );
 }
+
