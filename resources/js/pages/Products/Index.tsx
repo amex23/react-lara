@@ -99,7 +99,7 @@ export default function Products() {
                 <TableHead className="w-16">ID</TableHead>
                 {isAdmin && <TableHead className="w-36">Store Owner</TableHead>}
                 <TableHead>Images</TableHead>
-                <TableHead>Store Name</TableHead>
+                <TableHead>Store URL/Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Subscription</TableHead>

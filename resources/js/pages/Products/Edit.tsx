@@ -115,7 +115,7 @@ export default function Edit({ product }: Props) {
 
                     {/* Always editable: Name */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="name">Store / Product Name</Label>
+                        <Label htmlFor="name">Store URL/Name</Label>
                         <Input
                             id="name"
                             value={data.name}
