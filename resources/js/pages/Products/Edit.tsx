@@ -1,214 +1,217 @@
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { route } from 'ziggy-js';
+import { type BreadcrumbItem } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CircleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { CircleAlert, CheckCircle } from 'lucide-react';
 
-interface Product {
-    id: number;
-    name: string;
-    price?: number | null;
-    description?: string | null;
-    subscription?: boolean;
-    image1_url?: string | null;
-    image2_url?: string | null;
-    image3_url?: string | null;
-    image4_url?: string | null;
-    image5_url?: string | null;
-    image6_url?: string | null;
-}
+export default function Edit() {
+    const { product, targetUser, authUser, indexRoute } = usePage().props as {
+        product: any;
+        targetUser: { id: number; name: string; user_type: string };
+        authUser: any;
+        indexRoute: string;
+    };
 
-interface Props {
-    product: Product;
-}
+    const [showSuccess, setShowSuccess] = useState(false);
 
-export default function Edit({ product }: Props) {
-    const { authUser } = usePage().props as { authUser?: { user_type: string } };
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: authUser?.user_type === 'admin' ? 'Products' : 'Dashboard', href: indexRoute },
+        { title: 'Edit Store Profile', href: '#' },
+    ];
 
-    const isAdmin = authUser?.user_type === 'admin';
-    const isUser = authUser?.user_type === 'user';
-
-    const [previews, setPreviews] = useState<Record<string, string | null>>({
-        image1: product.image1_url || null,
-        image2: product.image2_url || null,
-        image3: product.image3_url || null,
-        image4: product.image4_url || null,
-        image5: product.image5_url || null,
-        image6: product.image6_url || null,
-    });
+    const isAdmin      = authUser?.user_type === 'admin';
+    const isOwnProfile = targetUser?.id === authUser?.id;
 
     const { data, setData, post, processing, errors } = useForm({
-        name: product.name || '',
-        description: product.description ?? '',
-        // Fields only for admins or users who are allowed to edit them
-        ...(isAdmin && {
-            price: product.price ?? '',
-            subscription: product.subscription ?? false,
-        }),
+        _method:      'PUT',
+        name:         product.name        ?? '',
+        description:  product.description ?? '',
+        price:        product.price       ?? '',
+        subscription: !!product.subscription,
         image1: null as File | null,
         image2: null as File | null,
         image3: null as File | null,
         image4: null as File | null,
         image5: null as File | null,
         image6: null as File | null,
-        remove_image1: false,
-        remove_image2: false,
-        remove_image3: false,
-        remove_image4: false,
-        remove_image5: false,
-        remove_image6: false,
-        _method: 'PUT',
     });
 
-    const handleUpdate = (e: React.FormEvent) => {
+    const basePath = isAdmin ? '/products' : '/dashboard';
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('products.update', product.id));
+        
+        post(`${basePath}/${product.id}`, {
+            onSuccess: () => {
+                setShowSuccess(true);
+                setTimeout(() => {
+                    window.location.href = indexRoute;
+                }, 2000);
+            },
+        });
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            setData(key as any, file);
-
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviews((prev) => ({ ...prev, [key]: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
-
-            setData(`remove_${key}` as any, false);
-        }
-    };
-
-    const handleRemoveImage = (key: string) => {
-        setData(key as any, null);
-        setData(`remove_${key}` as any, true);
-        setPreviews((prev) => ({ ...prev, [key]: null }));
+    const handleImageChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        key: keyof typeof data,
+    ) => {
+        const file = e.target.files?.[0];
+        if (file) setData(key, file);
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Edit Product', href: `/products/${product.id}/edit` }]}>
-            <Head title="Update Product" />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={`Edit ${product.name || 'Store Profile'}`} />
 
-            <div className="w-8/12 p-4">
-                <form onSubmit={handleUpdate} encType="multipart/form-data" className="space-y-6">
+            {/* Success popup overlay */}
+            {showSuccess && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md mx-4 animate-in zoom-in duration-200">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">Success!</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Store profile updated successfully
+                                </p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-gray-500">Redirecting to dashboard...</p>
+                    </div>
+                </div>
+            )}
 
+            <div className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold">Edit Store Profile</h1>
+
+                    {isAdmin && !isOwnProfile && (
+                        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
+                            Editing store of: <strong>{targetUser?.name}</strong>
+                        </div>
+                    )}
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
                     {Object.keys(errors).length > 0 && (
                         <Alert variant="destructive">
                             <CircleAlert className="h-4 w-4" />
-                            <AlertTitle>Errors!</AlertTitle>
+                            <AlertTitle>Errors:</AlertTitle>
                             <AlertDescription>
-                                <ul className="list-disc pl-5">
-                                    {Object.entries(errors).map(([key, message]) => (
-                                        <li key={key}>{message as string}</li>
+                                <ul className="list-disc pl-5 mt-2">
+                                    {Object.entries(errors).map(([key, msg]) => (
+                                        <li key={key}>{msg as string}</li>
                                     ))}
                                 </ul>
                             </AlertDescription>
                         </Alert>
                     )}
 
-                    {/* Always editable: Name */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="name">Store URL/Name</Label>
+                    {/* Name */}
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Store / Display Name *</Label>
                         <Input
                             id="name"
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
                         />
-                        {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                     </div>
 
-                    {/* Description - editable by both admins and users */}
-                    <div className="space-y-1.5">
+                    {/* Description */}
+                    <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
                         <Textarea
                             id="description"
                             value={data.description}
                             onChange={(e) => setData('description', e.target.value)}
-                            placeholder="Describe your store or product..."
+                            rows={5}
                         />
-                        {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
                     </div>
 
-                    {/* Price - only visible/editable for admins */}
-                    {isAdmin && (
-                        <div className="space-y-1.5">
-                            <Label htmlFor="price">Price</Label>
-                            <Input
-                                id="price"
-                                type="number"
-                                step="0.01"
-                                value={data.price}
-                                onChange={(e) => setData('price', e.target.value)}
-                            />
-                            {errors.price && <p className="text-sm text-destructive">{errors.price}</p>}
-                        </div>
-                    )}
+                    {/* Price */}
+                    <div className="space-y-2">
+                        <Label htmlFor="price">Price (USD)</Label>
+                        <Input
+                            id="price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={data.price}
+                            onChange={(e) => setData('price', e.target.value)}
+                        />
+                    </div>
 
-                    {/* Subscription - only visible for admins (read-only or editable depending on your rule) */}
+                    {/* Subscription — admin only */}
                     {isAdmin && (
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 id="subscription"
                                 checked={data.subscription}
-                                onCheckedChange={(checked) => setData('subscription', !!checked)}
+                                onCheckedChange={(checked) =>
+                                    setData('subscription', !!checked)
+                                }
                             />
-                            <Label htmlFor="subscription" className="cursor-pointer">
-                                Subscription Product
+                            <Label htmlFor="subscription">
+                                Subscription product / service
                             </Label>
                         </div>
                     )}
 
-                    {/* Images - editable by both admins and normal users */}
-                    {['image1', 'image2', 'image3', 'image4', 'image5', 'image6'].map((key, index) => (
-                        <div key={key} className="space-y-1.5">
-                            <Label htmlFor={key}>Store Image {index + 1}</Label>
+                    {/* Images */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Array.from({ length: 6 }).map((_, i) => {
+                            const idx    = i + 1;
+                            const key    = `image${idx}` as keyof typeof data;
+                            const urlKey = `image${idx}_url` as keyof typeof product;
 
-                            {previews[key] && (
-                                <div className="mb-4 relative inline-block">
-                                    <img
-                                        src={previews[key]!}
-                                        alt={`Preview ${index + 1}`}
-                                        className="w-32 h-32 object-cover rounded border shadow-sm"
+                            return (
+                                <div key={idx} className="space-y-2">
+                                    <Label htmlFor={key}>Image {idx}</Label>
+
+                                    {product[urlKey] && (
+                                        <div className="mb-2">
+                                            <img
+                                                src={product[urlKey]}
+                                                alt={`Current image ${idx}`}
+                                                className="h-20 w-20 object-cover rounded border"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <Input
+                                        id={key}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,image/gif"
+                                        onChange={(e) => handleImageChange(e, key)}
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="sm"
-                                        className="absolute top-1 right-1"
-                                        onClick={() => handleRemoveImage(key)}
-                                    >
-                                        ×
-                                    </Button>
+
+                                    {data[key] && (
+                                        <p className="text-xs text-muted-foreground truncate">
+                                            New: {(data[key] as File).name}
+                                        </p>
+                                    )}
                                 </div>
-                            )}
+                            );
+                        })}
+                    </div>
 
-                            <Input
-                                id={key}
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleImageChange(e, key)}
-                            />
-
-                            {data[key] && (
-                                <p className="text-sm text-muted-foreground">
-                                    New file: {data[key]?.name}
-                                </p>
-                            )}
-
-                            {errors[key] && <p className="text-sm text-destructive">{errors[key]}</p>}
-                        </div>
-                    ))}
-
-                    <div className="pt-6">
-                        <Button type="submit" disabled={processing} className="w-full sm:w-auto">
-                            {processing ? 'Updating...' : 'Update Product'}
+                    <div className="pt-4 flex gap-4">
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Saving…' : 'Save Changes'}
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <a href={indexRoute}>Cancel</a>
+                        </Button>
+                        <Button className='ml-5' variant="outline" asChild>
+                            <a href={indexRoute}>Back to Dashboard</a>
                         </Button>
                     </div>
                 </form>
@@ -216,3 +219,4 @@ export default function Edit({ product }: Props) {
         </AppLayout>
     );
 }
+

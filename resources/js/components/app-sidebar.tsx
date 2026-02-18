@@ -29,25 +29,25 @@ export function AppSidebar() {
         // },
 
         // ✅ Show ONLY if user_type is admin
-        ...(auth?.user?.user_type === 'admin'
-            ? [
-                {
-                    title: 'Product Users',
-                    href: '/products',
-                    icon: PackageSearch,
-                },
-              ]
-            : []),
+        // ...(auth?.user?.user_type === 'admin'
+        //     ? [
+        //         {
+        //             title: 'Product Users',
+        //             href: '/products',
+        //             icon: PackageSearch,
+        //         },
+        //       ]
+        //     : []),
 
-        ...(auth?.user?.user_type === 'user'
-            ? [
-                {
-                    title: 'Dashboard',
-                    href: '/products',
-                    icon: PackageSearch,
-                },
-              ]
-            : []),    
+        // ...(auth?.user?.user_type === 'user'
+        //     ? [
+        //         {
+        //             title: 'Dashboard',
+        //             href: '/products',
+        //             icon: PackageSearch,
+        //         },
+        //       ]
+        //     : []),    
     ];
 
     const footerNavItems: NavItem[] = [

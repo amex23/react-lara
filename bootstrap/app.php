@@ -21,10 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\RedirectAfterLogin::class, // ← Added here - forces /products after login
         ]);
 
         $middleware->alias([
             'admin' => AdminMiddleware::class,
+            'redirect.after.login' => \App\Http\Middleware\RedirectAfterLogin::class, // optional alias
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

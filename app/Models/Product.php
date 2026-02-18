@@ -13,7 +13,7 @@ class Product extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -21,10 +21,28 @@ class Product extends Model
     ];
 
     /**
-     * The user who owns this product (store owner).
+     * Get the user that owns this product / storefront.
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Alias: sometimes it's clearer to call it "owner" instead of "user"
+     * (especially in views / controllers when dealing with store owners)
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->user();
+    }
+
+    /**
+     * Optional: If you ever want to add a scope for convenience
+     * Example usage: Product::ownedBy($user)->get();
+     */
+    public function scopeOwnedBy($query, $user)
+    {
+        return $query->where('user_id', $user instanceof User ? $user->id : $user);
     }
 }
