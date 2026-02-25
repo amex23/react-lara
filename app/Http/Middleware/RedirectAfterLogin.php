@@ -27,7 +27,7 @@ class RedirectAfterLogin
             if ($user) {
                 // Normal users → /products
                 // Admins → /dashboard (or change to whatever you want)
-                $redirectTo = $user->user_type === 'admin' ? '/dashboard' : '/products';
+                $redirectTo = $user->user_type === 'admin' ? '/dashboard' : '/dashboard';
                 return redirect($redirectTo);
             }
         }

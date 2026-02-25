@@ -137,17 +137,22 @@ export default function Edit() {
                     </div>
 
                     {/* Price */}
-                    <div className="space-y-2">
-                        <Label htmlFor="price">Price (USD)</Label>
-                        <Input
-                            id="price"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={data.price}
-                            onChange={(e) => setData('price', e.target.value)}
-                        />
-                    </div>
+
+                       {isAdmin && (
+                        <div className="space-y-2">
+                                <Label htmlFor="price">Price (USD)</Label>
+                                <Input
+                                    id="price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.price}
+                                    onChange={(e) => setData('price', e.target.value)}
+                                />
+                        </div>
+                    )}
+                    
+
 
                     {/* Subscription — admin only */}
                     {isAdmin && (

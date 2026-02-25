@@ -72,11 +72,28 @@ export default function Index() {
         }]}>
             <Head title={isAdmin ? 'All Store Profiles' : 'My Store Profile'} />
 
+          
+
             <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h1 className="text-2xl font-bold">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-7 mb-6">
+                    <div className='w-full flex justify-center flex-col gap-y-5'>
+                        <h1 className="text-3xl text-center font-bold">
                         {isAdmin ? 'All Store Profiles' : 'My Store Profile'}
-                    </h1>
+                        </h1>
+
+                        <div className='w-full flex justify-between'>
+                            <h2 className="text-lg text-center">
+                        {isAdmin ? '' : 'Total Views: 12'}
+                        </h2>
+
+                         <h2 className="text-lg text-center">
+                        {isAdmin ? '' : 'Total Checkout: 3'}
+                        </h2>
+                        </div>
+                        
+                    </div>
+
+                   
 
                     {isAdmin ? (
                         <a href={route('register.admin')}>
@@ -114,9 +131,13 @@ export default function Index() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-16">ID</TableHead>
+                                    
+                                    {isAdmin && (
+                                          <TableHead className="w-16">ID</TableHead>
+                                    )}
+
                                     {isAdmin && <TableHead className="w-44">Owner</TableHead>}
-                                    <TableHead>Images</TableHead>
+                                    <TableHead>My Images</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Price</TableHead>
                                     <TableHead>Description</TableHead>
@@ -128,7 +149,12 @@ export default function Index() {
                             <TableBody>
                                 {products.map((product) => (
                                     <TableRow key={product.id}>
-                                        <TableCell className="font-medium">{product.id}</TableCell>
+                                        
+
+                                        {isAdmin && (
+                                           <TableCell className="font-medium">{product.id}</TableCell>
+                                        )}
+                                        
 
                                         {isAdmin && (
                                             <TableCell className="text-sm">
@@ -161,6 +187,7 @@ export default function Index() {
 
                                         <TableCell className="font-medium">{product.name}</TableCell>
 
+                                                    
                                         <TableCell>
                                             {product.price != null
                                                 ? `$${Number(product.price).toFixed(2)}`

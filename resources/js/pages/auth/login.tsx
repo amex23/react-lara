@@ -9,7 +9,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
 
 interface LoginProps {
     status?: string;
@@ -32,6 +32,10 @@ export default function Login({
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
+                onSuccess={() => {
+                    // Force redirect to dashboard after successful login
+                    window.location.href = '/dashboard';
+                }}
                 className="flex flex-col gap-6"
             >
                 {({ processing, errors }) => (
@@ -118,3 +122,5 @@ export default function Login({
         </AuthLayout>
     );
 }
+
+
