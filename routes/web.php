@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -16,6 +17,7 @@ Fortify::redirects('login', '/dashboard');
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
 
 // Define HOME constant for post-login redirect
 if (!defined('HOME')) {
