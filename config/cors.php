@@ -1,11 +1,11 @@
 <?php
 
 return [
-    'paths' => ['api/*', 'api/store-profile/*'],
+    'paths' => ['api/*'],
 
-    'allowed_methods' => ['GET', 'POST', 'OPTIONS'],
+    'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://your-shopify-store.myshopify.com'],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
