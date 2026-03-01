@@ -62,4 +62,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('register.admin.store');
 });
 
+// Public API - no auth, called by Shopify
+Route::get('/api/store-profile/{user}', function (User $user) {
+    return response()->json([
+        'name'        => $user->name,
+        'description' => $user->description,
+        'price'       => $user->price,
+        'images'      => collect(['image1','image2','image3','image4','image5','image6'])
+            ->map(fn($key) => $user->$key ? Storage::url($user->$key) : null)
+            ->filter()
+            ->values(),
+        'checkout_url' => 'https://your-shopify-store.myshopify.com/cart', // or dynamic
+    ]);
+})->name('api.store.profile');
+
+
 require __DIR__.'/settings.php';
