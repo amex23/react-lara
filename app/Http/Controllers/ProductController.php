@@ -70,26 +70,36 @@ class ProductController extends Controller
                 ->with('message', 'You already have a store profile.');
         }
 
-        $rules = [
-            'name'         => 'required|string|max:255',
-            'description'  => 'nullable|string|max:3000',
-            'price'        => 'nullable|numeric|min:0',
-            'subscription' => 'nullable|boolean',
-            'image1'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image2'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image3'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image4'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image5'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image6'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        ];
-
-        $validated = $request->validate($rules);
+        $validated = $request->validate([
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string|max:3000',
+            'price'         => 'nullable|numeric|min:0',
+            'subscription'  => 'nullable|boolean',
+            'image1'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image2'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image3'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image4'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image5'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image6'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'checkout_url1' => 'nullable|url|max:500',
+            'checkout_url2' => 'nullable|url|max:500',
+            'checkout_url3' => 'nullable|url|max:500',
+            'checkout_url4' => 'nullable|url|max:500',
+            'checkout_url5' => 'nullable|url|max:500',
+            'checkout_url6' => 'nullable|url|max:500',
+        ]);
 
         $updates = [
-            'name'         => $validated['name'],
-            'description'  => $validated['description'] ?? null,
-            'price'        => $validated['price'] ?? null,
-            'subscription' => isset($validated['subscription']) ? (bool) $validated['subscription'] : false,
+            'name'          => $validated['name'],
+            'description'   => $validated['description'] ?? null,
+            'price'         => $validated['price'] ?? null,
+            'subscription'  => isset($validated['subscription']) ? (bool) $validated['subscription'] : false,
+            'checkout_url1' => $validated['checkout_url1'] ?? null,
+            'checkout_url2' => $validated['checkout_url2'] ?? null,
+            'checkout_url3' => $validated['checkout_url3'] ?? null,
+            'checkout_url4' => $validated['checkout_url4'] ?? null,
+            'checkout_url5' => $validated['checkout_url5'] ?? null,
+            'checkout_url6' => $validated['checkout_url6'] ?? null,
         ];
 
         foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
@@ -133,26 +143,36 @@ class ProductController extends Controller
     {
         $this->authorizeAccess($product);
 
-        $rules = [
-            'name'         => 'required|string|max:255',
-            'description'  => 'nullable|string|max:3000',
-            'price'        => 'nullable|numeric|min:0',
-            'subscription' => 'nullable|boolean',
-            'image1'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image2'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image3'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image4'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image5'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-            'image6'       => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
-        ];
-
-        $validated = $request->validate($rules);
+        $validated = $request->validate([
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string|max:3000',
+            'price'         => 'nullable|numeric|min:0',
+            'subscription'  => 'nullable|boolean',
+            'image1'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image2'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image3'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image4'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image5'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'image6'        => 'nullable|image|mimes:jpeg,png,jpg,webp,gif|max:2048',
+            'checkout_url1' => 'nullable|url|max:500',
+            'checkout_url2' => 'nullable|url|max:500',
+            'checkout_url3' => 'nullable|url|max:500',
+            'checkout_url4' => 'nullable|url|max:500',
+            'checkout_url5' => 'nullable|url|max:500',
+            'checkout_url6' => 'nullable|url|max:500',
+        ]);
 
         $updates = [
-            'name'         => $validated['name'],
-            'description'  => $validated['description'] ?? null,
-            'price'        => $validated['price'] ?? null,
-            'subscription' => isset($validated['subscription']) ? (bool) $validated['subscription'] : false,
+            'name'          => $validated['name'],
+            'description'   => $validated['description'] ?? null,
+            'price'         => $validated['price'] ?? null,
+            'subscription'  => isset($validated['subscription']) ? (bool) $validated['subscription'] : false,
+            'checkout_url1' => $validated['checkout_url1'] ?? null,
+            'checkout_url2' => $validated['checkout_url2'] ?? null,
+            'checkout_url3' => $validated['checkout_url3'] ?? null,
+            'checkout_url4' => $validated['checkout_url4'] ?? null,
+            'checkout_url5' => $validated['checkout_url5'] ?? null,
+            'checkout_url6' => $validated['checkout_url6'] ?? null,
         ];
 
         foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
@@ -184,15 +204,21 @@ class ProductController extends Controller
         }
 
         $product->update([
-            'description'  => null,
-            'price'        => null,
-            'subscription' => false,
-            'image1'       => null,
-            'image2'       => null,
-            'image3'       => null,
-            'image4'       => null,
-            'image5'       => null,
-            'image6'       => null,
+            'description'   => null,
+            'price'         => null,
+            'subscription'  => false,
+            'image1'        => null,
+            'image2'        => null,
+            'image3'        => null,
+            'image4'        => null,
+            'image5'        => null,
+            'image6'        => null,
+            'checkout_url1' => null,
+            'checkout_url2' => null,
+            'checkout_url3' => null,
+            'checkout_url4' => null,
+            'checkout_url5' => null,
+            'checkout_url6' => null,
         ]);
 
         return redirect()->route($this->indexRoute())
@@ -249,6 +275,12 @@ class ProductController extends Controller
             'image4_url'        => $user->image4 ? Storage::url($user->image4) : null,
             'image5_url'        => $user->image5 ? Storage::url($user->image5) : null,
             'image6_url'        => $user->image6 ? Storage::url($user->image6) : null,
+            'checkout_url1'     => $user->checkout_url1,
+            'checkout_url2'     => $user->checkout_url2,
+            'checkout_url3'     => $user->checkout_url3,
+            'checkout_url4'     => $user->checkout_url4,
+            'checkout_url5'     => $user->checkout_url5,
+            'checkout_url6'     => $user->checkout_url6,
         ];
     }
 }

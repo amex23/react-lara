@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -29,24 +29,29 @@ export default function Edit() {
     const isOwnProfile = targetUser?.id === authUser?.id;
 
     const { data, setData, post, processing, errors } = useForm({
-        _method:      'PUT',
-        name:         product.name        ?? '',
-        description:  product.description ?? '',
-        price:        product.price       ?? '',
-        subscription: !!product.subscription,
+        _method:       'PUT',
+        name:          product.name        ?? '',
+        description:   product.description ?? '',
+        price:         product.price       ?? '',
+        subscription:  !!product.subscription,
         image1: null as File | null,
         image2: null as File | null,
         image3: null as File | null,
         image4: null as File | null,
         image5: null as File | null,
         image6: null as File | null,
+        checkout_url1: product.checkout_url1 ?? '',
+        checkout_url2: product.checkout_url2 ?? '',
+        checkout_url3: product.checkout_url3 ?? '',
+        checkout_url4: product.checkout_url4 ?? '',
+        checkout_url5: product.checkout_url5 ?? '',
+        checkout_url6: product.checkout_url6 ?? '',
     });
 
     const basePath = isAdmin ? '/products' : '/dashboard';
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
         post(`${basePath}/${product.id}`, {
             onSuccess: () => {
                 setShowSuccess(true);
@@ -136,23 +141,20 @@ export default function Edit() {
                         />
                     </div>
 
-                    {/* Price */}
-
-                       {isAdmin && (
+                    {/* Price — admin only */}
+                    {isAdmin && (
                         <div className="space-y-2">
-                                <Label htmlFor="price">Price (USD)</Label>
-                                <Input
-                                    id="price"
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={data.price}
-                                    onChange={(e) => setData('price', e.target.value)}
-                                />
+                            <Label htmlFor="price">Price (USD)</Label>
+                            <Input
+                                id="price"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={data.price}
+                                onChange={(e) => setData('price', e.target.value)}
+                            />
                         </div>
                     )}
-                    
-
 
                     {/* Subscription — admin only */}
                     {isAdmin && (
@@ -174,8 +176,8 @@ export default function Edit() {
                                 </span>
                             </div>
                             <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${
-                                data.subscription 
-                                    ? 'bg-green-100 text-green-700' 
+                                data.subscription
+                                    ? 'bg-green-100 text-green-700'
                                     : 'bg-slate-200 text-slate-500'
                             }`}>
                                 {data.subscription ? '✓ Connected' : '✗ Not Connected'}
@@ -183,42 +185,75 @@ export default function Edit() {
                         </div>
                     )}
 
-                    {/* Images */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Array.from({ length: 6 }).map((_, i) => {
-                            const idx    = i + 1;
-                            const key    = `image${idx}` as keyof typeof data;
-                            const urlKey = `image${idx}_url` as keyof typeof product;
+                    {/* Images + Checkout URLs */}
+                    <div>
+                        <h2 className="text-sm font-semibold text-slate-700 mb-3">
+                            Images &amp; Checkout Links
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {Array.from({ length: 6 }).map((_, i) => {
+                                const idx          = i + 1;
+                                const imageKey     = `image${idx}` as keyof typeof data;
+                                const urlKey       = `image${idx}_url` as keyof typeof product;
+                                const checkoutKey  = `checkout_url${idx}` as keyof typeof data;
 
-                            return (
-                                <div key={idx} className="space-y-2">
-                                    <Label htmlFor={key}>Image {idx}</Label>
+                                return (
+                                    <div key={idx} className="space-y-2 border rounded-lg p-3 bg-slate-50">
+                                        <Label className="font-semibold text-slate-700">
+                                            Image {idx}
+                                        </Label>
 
-                                    {product[urlKey] && (
-                                        <div className="mb-2">
-                                            <img
-                                                src={product[urlKey]}
-                                                alt={`Current image ${idx}`}
-                                                className="h-20 w-20 object-cover rounded border"
+                                        {/* Current image preview */}
+                                        {product[urlKey] && (
+                                            <div className="mb-2">
+                                                <img
+                                                    src={product[urlKey]}
+                                                    alt={`Current image ${idx}`}
+                                                    className="h-20 w-20 object-cover rounded border"
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Image file input */}
+                                        <Input
+                                            id={imageKey}
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/webp,image/gif"
+                                            onChange={(e) => handleImageChange(e, imageKey)}
+                                        />
+
+                                        {data[imageKey] && (
+                                            <p className="text-xs text-muted-foreground truncate">
+                                                New: {(data[imageKey] as File).name}
+                                            </p>
+                                        )}
+
+                                        {/* Checkout URL input */}
+                                        <div className="pt-1 space-y-1">
+                                            <Label
+                                                htmlFor={String(checkoutKey)}
+                                                className="text-xs text-muted-foreground"
+                                            >
+                                                Checkout URL
+                                            </Label>
+                                            <Input
+                                                id={String(checkoutKey)}
+                                                type="url"
+                                                placeholder="https://yourstore.myshopify.com/products/..."
+                                                value={(data[checkoutKey] as string) ?? ''}
+                                                onChange={(e) => setData(checkoutKey, e.target.value)}
+                                                className="text-xs"
                                             />
+                                            {errors[checkoutKey as keyof typeof errors] && (
+                                                <p className="text-xs text-red-500">
+                                                    {errors[checkoutKey as keyof typeof errors] as string}
+                                                </p>
+                                            )}
                                         </div>
-                                    )}
-
-                                    <Input
-                                        id={key}
-                                        type="file"
-                                        accept="image/jpeg,image/png,image/webp,image/gif"
-                                        onChange={(e) => handleImageChange(e, key)}
-                                    />
-
-                                    {data[key] && (
-                                        <p className="text-xs text-muted-foreground truncate">
-                                            New: {(data[key] as File).name}
-                                        </p>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <div className="pt-4 flex gap-4">
@@ -228,7 +263,7 @@ export default function Edit() {
                         <Button variant="outline" asChild>
                             <a href={indexRoute}>Cancel</a>
                         </Button>
-                        <Button className='ml-5' variant="outline" asChild>
+                        <Button className="ml-5" variant="outline" asChild>
                             <a href={indexRoute}>Back to Dashboard</a>
                         </Button>
                     </div>
@@ -237,4 +272,3 @@ export default function Edit() {
         </AppLayout>
     );
 }
-

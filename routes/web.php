@@ -63,7 +63,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Public API — no auth, called by Shopify
 // ─────────────────────────────────────────────
 
-// Get store profile + images
+// Get store profile + images (each with its own checkout URL)
 Route::get('/api/store-profile/{id}', function ($id) {
     $user = User::findOrFail($id);
 
@@ -71,15 +71,21 @@ Route::get('/api/store-profile/{id}', function ($id) {
         return response()->json(['error' => 'Store not connected.'], 403);
     }
 
+    $fallback = 'https://naturepackaged.myshopify.com/cart';
+
+    $images = collect([1, 2, 3, 4, 5, 6])
+        ->map(fn($i) => $user->{"image$i"} ? [
+            'url'          => Storage::url($user->{"image$i"}),
+            'checkout_url' => $user->{"checkout_url$i"} ?: $fallback,
+        ] : null)
+        ->filter()
+        ->values();
+
     return response()->json([
-        'name'         => $user->name,
-        'description'  => $user->description,
-        'price'        => $user->price,
-        'images'       => collect(['image1','image2','image3','image4','image5','image6'])
-            ->map(fn($key) => $user->$key ? Storage::url($user->$key) : null)
-            ->filter()
-            ->values(),
-        'checkout_url' => 'https://naturepackaged.myshopify.com/cart',
+        'name'        => $user->name,
+        'description' => $user->description,
+        'price'       => $user->price,
+        'images'      => $images,
     ]);
 })->name('api.store.profile');
 

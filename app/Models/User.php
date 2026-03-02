@@ -31,6 +31,8 @@ class User extends Authenticatable
         'shopify_customer_id',
         'profile_views',
         'profile_checkouts',
+        'checkout_url1', 'checkout_url2', 'checkout_url3',
+        'checkout_url4', 'checkout_url5', 'checkout_url6',
     ];
 
     /**
