@@ -18,20 +18,18 @@ class ProductController extends Controller
         $authUser = Auth::user();
 
         if ($authUser->user_type === 'admin') {
-            // Admins see every user's store profile at /products
             $users = User::all();
         } else {
-            // Regular users see only their own profile at /dashboard
             $users = User::where('id', $authUser->id)->get();
         }
 
         $products = $users->map(fn($user) => $this->formatUser($user));
 
         return Inertia::render('Products/Index', [
-            'products'   => $products,
-            'authUser'   => $authUser,
-            'createUrl'  => $this->actionRoute('create'),
-            'editUrlBase'=> Auth::user()->user_type === 'admin' ? '/products' : '/dashboard',
+            'products'    => $products,
+            'authUser'    => $authUser,
+            'createUrl'   => $this->actionRoute('create'),
+            'editUrlBase' => Auth::user()->user_type === 'admin' ? '/products' : '/dashboard',
         ]);
     }
 
@@ -42,12 +40,10 @@ class ProductController extends Controller
     {
         $authUser = Auth::user();
 
-        // Admins create new users via /register-admin, not here
         if ($authUser->user_type === 'admin') {
             return redirect()->route('register.admin');
         }
 
-        // Regular users can only create once (their own profile)
         if ($this->userHasProfile($authUser)) {
             return redirect()->route($this->indexRoute())
                 ->with('message', 'You already have a store profile. Use Edit to update it.');
@@ -65,12 +61,10 @@ class ProductController extends Controller
     {
         $authUser = Auth::user();
 
-        // Admins create new users via /register-admin, not here
         if ($authUser->user_type === 'admin') {
             return redirect()->route('register.admin');
         }
 
-        // Guard: regular users may only create once
         if ($this->userHasProfile($authUser)) {
             return redirect()->route($this->indexRoute())
                 ->with('message', 'You already have a store profile.');
@@ -177,7 +171,7 @@ class ProductController extends Controller
     }
 
     // ─────────────────────────────────────────────
-    // DELETE  (clears profile fields, keeps the user account)
+    // DELETE
     // ─────────────────────────────────────────────
     public function destroy(User $product)
     {
@@ -209,19 +203,11 @@ class ProductController extends Controller
     // HELPERS
     // ─────────────────────────────────────────────
 
-    /**
-     * Returns the correct index route name depending on who is logged in.
-     * Admins land on products.index (/products); users land on dashboard (/dashboard).
-     */
     private function indexRoute(): string
     {
         return Auth::user()->user_type === 'admin' ? 'products.index' : 'dashboard';
     }
 
-    /**
-     * Returns the correct named route for a given action based on user type.
-     * Admins use products.* routes; regular users use dashboard.* routes.
-     */
     private function actionRoute(string $action, mixed $id = null): string
     {
         $isAdmin = Auth::user()->user_type === 'admin';
@@ -229,9 +215,6 @@ class ProductController extends Controller
         return $id ? route($name, $id) : route($name);
     }
 
-    /**
-     * A profile is considered "filled" when at least one of these fields is set.
-     */
     private function userHasProfile(User $user): bool
     {
         return filled($user->description)
@@ -239,9 +222,6 @@ class ProductController extends Controller
             || filled($user->price);
     }
 
-    /**
-     * Only admins or the owning user may touch a profile.
-     */
     private function authorizeAccess(User $targetUser): void
     {
         $auth = Auth::user();
@@ -251,25 +231,24 @@ class ProductController extends Controller
         }
     }
 
-    /**
-     * Normalise a User row into the shape the front-end expects.
-     */
     private function formatUser(User $user): array
     {
         return [
-            'id'           => $user->id,
-            'name'         => $user->name,
-            'user_id'      => $user->id,
-            'owner_name'   => $user->name,
-            'description'  => $user->description,
-            'price'        => $user->price,
-            'subscription' => (bool) $user->subscription,
-            'image1_url'   => $user->image1 ? Storage::url($user->image1) : null,
-            'image2_url'   => $user->image2 ? Storage::url($user->image2) : null,
-            'image3_url'   => $user->image3 ? Storage::url($user->image3) : null,
-            'image4_url'   => $user->image4 ? Storage::url($user->image4) : null,
-            'image5_url'   => $user->image5 ? Storage::url($user->image5) : null,
-            'image6_url'   => $user->image6 ? Storage::url($user->image6) : null,
+            'id'                => $user->id,
+            'name'              => $user->name,
+            'user_id'           => $user->id,
+            'owner_name'        => $user->name,
+            'description'       => $user->description,
+            'price'             => $user->price,
+            'subscription'      => (bool) $user->subscription,
+            'profile_views'     => (int) ($user->profile_views ?? 0),
+            'profile_checkouts' => (int) ($user->profile_checkouts ?? 0),
+            'image1_url'        => $user->image1 ? Storage::url($user->image1) : null,
+            'image2_url'        => $user->image2 ? Storage::url($user->image2) : null,
+            'image3_url'        => $user->image3 ? Storage::url($user->image3) : null,
+            'image4_url'        => $user->image4 ? Storage::url($user->image4) : null,
+            'image5_url'        => $user->image5 ? Storage::url($user->image5) : null,
+            'image6_url'        => $user->image6 ? Storage::url($user->image6) : null,
         ];
     }
 }

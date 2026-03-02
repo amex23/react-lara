@@ -21,6 +21,8 @@ interface Product {
     description?: string | null;
     price?: string | number | null;
     subscription?: boolean;
+    profile_views?: number;
+    profile_checkouts?: number;
     image1_url?: string | null;
     image2_url?: string | null;
     image3_url?: string | null;
@@ -65,6 +67,8 @@ export default function Index() {
                 (p.description || p.image1_url || p.price != null),
         );
 
+    const myProfile = !isAdmin ? products[0] : null;    
+
     return (
         <AppLayout breadcrumbs={[{
             title: isAdmin ? 'Products' : 'Dashboard',
@@ -83,12 +87,11 @@ export default function Index() {
 
                         <div className='w-full flex justify-between'>
                             <h2 className="text-lg text-center">
-                        {isAdmin ? '' : 'Total Views: 12'}
-                        </h2>
-
-                         <h2 className="text-lg text-center">
-                        {isAdmin ? '' : 'Total Checkout: 3'}
-                        </h2>
+                                {isAdmin ? '' : `Total Views: ${myProfile?.profile_views ?? 0}`}
+                            </h2>
+                            <h2 className="text-lg text-center">
+                                {isAdmin ? '' : `Total Checkout: ${myProfile?.profile_checkouts ?? 0}`}
+                            </h2>
                         </div>
                         
                     </div>

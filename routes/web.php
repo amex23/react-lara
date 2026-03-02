@@ -79,4 +79,18 @@ Route::get('/api/store-profile/{user}', function (User $user) {
 })->name('api.store.profile');
 
 
+Route::post('/api/store-profile/{id}/view', function ($id) {
+    $user = User::findOrFail($id);
+    $user->increment('profile_views');
+    return response()->json(['views' => $user->profile_views]);
+});
+
+// Track checkout click
+Route::post('/api/store-profile/{id}/checkout', function ($id) {
+    $user = User::findOrFail($id);
+    $user->increment('profile_checkouts');
+    return response()->json(['checkouts' => $user->profile_checkouts]);
+});
+
+
 require __DIR__.'/settings.php';
