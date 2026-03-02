@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'api/store-profile/*',
+        ]);
+
         $middleware->alias([
             'admin' => AdminMiddleware::class,
         ]);
