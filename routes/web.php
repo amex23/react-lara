@@ -1,7 +1,9 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -18,12 +20,10 @@ Fortify::redirects('login', '/dashboard');
 |--------------------------------------------------------------------------
 */
 
-// Define HOME constant for post-login redirect
 if (!defined('HOME')) {
     define('HOME', '/dashboard');
 }
 
-// Tell Laravel to resolve {product} route segments as User model rows.
 Route::bind('product', fn($value) => User::findOrFail($value));
 
 // Public home
@@ -92,6 +92,14 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
     }
 
     $user->increment('profile_views');
+
+    DB::table('profile_events')->insert([
+        'user_id'    => $user->id,
+        'type'       => 'view',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
     return response()->json(['views' => $user->profile_views]);
 });
 
@@ -104,7 +112,51 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
     }
 
     $user->increment('profile_checkouts');
+
+    DB::table('profile_events')->insert([
+        'user_id'    => $user->id,
+        'type'       => 'checkout',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
     return response()->json(['checkouts' => $user->profile_checkouts]);
 });
+
+// Get filtered stats + calendar data
+Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
+    $user = User::findOrFail($id);
+
+    if (!$user->subscription) {
+        return response()->json(['error' => 'Store not connected.'], 403);
+    }
+
+    $filter = $request->query('filter', 'today');
+
+    $query = DB::table('profile_events')->where('user_id', $user->id);
+
+    $query->when($filter === 'today', fn($q) => $q->whereDate('created_at', today()));
+    $query->when($filter === 'week',  fn($q) => $q->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]));
+    $query->when($filter === 'month', fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year));
+
+    $views     = (clone $query)->where('type', 'view')->count();
+    $checkouts = (clone $query)->where('type', 'checkout')->count();
+
+    // Daily breakdown for calendar (always current month)
+    $daily = DB::table('profile_events')
+        ->where('user_id', $user->id)
+        ->whereMonth('created_at', now()->month)
+        ->whereYear('created_at', now()->year)
+        ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
+        ->groupBy('date', 'type')
+        ->get();
+
+    return response()->json([
+        'views'     => $views,
+        'checkouts' => $checkouts,
+        'daily'     => $daily,
+        'filter'    => $filter,
+    ]);
+})->name('api.store.stats');
 
 require __DIR__.'/settings.php';
