@@ -156,7 +156,7 @@ export default function Edit() {
 
                     {/* Subscription — admin only */}
                     {isAdmin && (
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 p-3 rounded-lg border border-dashed border-slate-300 bg-slate-50">
                             <Checkbox
                                 id="subscription"
                                 checked={data.subscription}
@@ -164,9 +164,22 @@ export default function Edit() {
                                     setData('subscription', !!checked)
                                 }
                             />
-                            <Label htmlFor="subscription">
-                                Subscription product / service
-                            </Label>
+                            <div className="flex flex-col">
+                                <Label htmlFor="subscription" className="font-semibold cursor-pointer">
+                                    Connect to Shopify
+                                </Label>
+                                <span className="text-xs text-muted-foreground mt-0.5">
+                                    When enabled, this user's images and stats will be live on the Shopify store.
+                                    When disabled, their profile will be hidden from Shopify.
+                                </span>
+                            </div>
+                            <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${
+                                data.subscription 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-slate-200 text-slate-500'
+                            }`}>
+                                {data.subscription ? '✓ Connected' : '✗ Not Connected'}
+                            </span>
                         </div>
                     )}
 

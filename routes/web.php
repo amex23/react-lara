@@ -18,7 +18,6 @@ Fortify::redirects('login', '/dashboard');
 |--------------------------------------------------------------------------
 */
 
-
 // Define HOME constant for post-login redirect
 if (!defined('HOME')) {
     define('HOME', '/dashboard');
@@ -34,28 +33,24 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-// Authenticated routes - REMOVED 'verified' middleware for testing
+// Authenticated routes
 Route::middleware(['auth'])->group(function () {
 
-    // /dashboard  → store profile for 'user' type (this is their products page)
     Route::get('/dashboard', [ProductController::class, 'index'])->name('dashboard');
 
-    // /dashboard/setup → 'user' type sets up their profile
     Route::get('/dashboard/setup', [ProductController::class, 'create'])->name('dashboard.create');
     Route::post('/dashboard/setup', [ProductController::class, 'store'])->name('dashboard.store');
 
-    // /dashboard/{product}/edit → 'user' type edits their own profile
     Route::get('/dashboard/{product}/edit', [ProductController::class, 'edit'])->name('dashboard.edit');
     Route::match(['POST', 'PUT'], '/dashboard/{product}', [ProductController::class, 'update'])->name('dashboard.update');
     Route::delete('/dashboard/{product}', [ProductController::class, 'destroy'])->name('dashboard.destroy');
 
-    // /products/* → admin only; 'user' type gets 403
     Route::middleware(['admin'])->group(function () {
         Route::resource('products', ProductController::class);
     });
 });
 
-// Admin-only routes - REMOVED 'verified' middleware for testing
+// Admin-only routes
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/register-admin', [AdminRegisterController::class, 'create'])
         ->name('register.admin');
@@ -64,23 +59,38 @@ Route::middleware(['auth', 'admin'])->group(function () {
         ->name('register.admin.store');
 });
 
-// Public API - no auth, called by Shopify
-Route::get('/api/store-profile/{user}', function (User $user) {
+// ─────────────────────────────────────────────
+// Public API — no auth, called by Shopify
+// ─────────────────────────────────────────────
+
+// Get store profile + images
+Route::get('/api/store-profile/{id}', function ($id) {
+    $user = User::findOrFail($id);
+
+    if (!$user->subscription) {
+        return response()->json(['error' => 'Store not connected.'], 403);
+    }
+
     return response()->json([
-        'name'        => $user->name,
-        'description' => $user->description,
-        'price'       => $user->price,
-        'images'      => collect(['image1','image2','image3','image4','image5','image6'])
+        'name'         => $user->name,
+        'description'  => $user->description,
+        'price'        => $user->price,
+        'images'       => collect(['image1','image2','image3','image4','image5','image6'])
             ->map(fn($key) => $user->$key ? Storage::url($user->$key) : null)
             ->filter()
             ->values(),
-        'checkout_url' => 'https://your-shopify-store.myshopify.com/cart', // or dynamic
+        'checkout_url' => 'https://naturepackaged.myshopify.com/cart',
     ]);
 })->name('api.store.profile');
 
-
+// Track profile view
 Route::post('/api/store-profile/{id}/view', function ($id) {
     $user = User::findOrFail($id);
+
+    if (!$user->subscription) {
+        return response()->json(['error' => 'Store not connected.'], 403);
+    }
+
     $user->increment('profile_views');
     return response()->json(['views' => $user->profile_views]);
 });
@@ -88,9 +98,13 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
 // Track checkout click
 Route::post('/api/store-profile/{id}/checkout', function ($id) {
     $user = User::findOrFail($id);
+
+    if (!$user->subscription) {
+        return response()->json(['error' => 'Store not connected.'], 403);
+    }
+
     $user->increment('profile_checkouts');
     return response()->json(['checkouts' => $user->profile_checkouts]);
 });
-
 
 require __DIR__.'/settings.php';

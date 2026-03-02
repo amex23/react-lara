@@ -85,6 +85,12 @@ export default function Index() {
                         {isAdmin ? 'All Store Profiles' : 'My Store Profile'}
                         </h1>
 
+                        {!isAdmin && !myProfile?.subscription && (
+                            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 text-center">
+                                Your store is not connected to Shopify. Contact your admin to activate.
+                            </div>
+                        )}
+
                         <div className='w-full flex justify-between'>
                             <h2 className="text-lg text-center">
                                 {isAdmin ? '' : `Total Views: ${myProfile?.profile_views ?? 0}`}
@@ -203,9 +209,9 @@ export default function Index() {
 
                                         <TableCell>
                                             {product.subscription ? (
-                                                <span className="text-green-600 font-medium">Yes</span>
+                                                <span className="text-green-600 font-medium">✓ Connected</span>
                                             ) : (
-                                                <span className="text-slate-400">No</span>
+                                                <span className="text-slate-400">✗ Not Connected</span>
                                             )}
                                         </TableCell>
 
