@@ -7,7 +7,7 @@ export default function AppLogo() {
            <img src="/images/shop-logo.png" alt="ShopMyDayApp Logo" className="w-[60px] rounded-md object-contain" />
             <div className="ml-1 grid flex-1 text-left text-sm">
                 <span className="mb-0.5 truncate leading-tight font-semibold text-lg">
-                    ShopMyDayApp
+                    ShopMyDay
                 </span>
             </div>
         </div>

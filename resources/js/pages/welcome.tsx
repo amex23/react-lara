@@ -175,8 +175,8 @@ export default function Welcome({
 
                     <div className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
                         <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-[20px] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
-                            <h1 className="mb-1 text-3xl font-bold">ShopMyDayApp</h1>
-                            <p className="mb-2 text-[15px] text-[#706f6c] dark:text-[#A1A09A] mt-7 leading-[24px]">
+                            <h1 className="mb-1 text-4xl font-bold tracking-wide text-center md:text-start">ShopMyDay</h1>
+                            <p className="mb-2 text-[15px] text-[#706f6c] dark:text-[#A1A09A] mt-7 leading-[24px] text-center md:text-start">
                                 Letting you post 24-hour product stories. Each story includes direct product links, making it easy for viewers to tap and buy. This story-driven approach increases engagement and boosts conversions.
                             </p>
                         </div>
