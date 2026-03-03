@@ -217,7 +217,7 @@ export default function Index() {
         }]}>
             <Head title={isAdmin ? 'All Store Profiles' : 'My Store Profile'} />
 
-            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <div className="w-full max-w-7xl mx-auto py-6 px-4 lg:px-4">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-7 mb-6">
                     <div className='w-full flex justify-center flex-col gap-y-5'>
                         <h1 className="text-3xl text-center font-bold">
