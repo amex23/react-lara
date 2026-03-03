@@ -190,36 +190,31 @@ export default function Edit() {
                         <h2 className="text-sm font-semibold text-slate-700 mb-3">
                             Images &amp; Checkout Links
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {Array.from({ length: 6 }).map((_, i) => {
-                                const idx          = i + 1;
-                                const imageKey     = `image${idx}` as keyof typeof data;
-                                const urlKey       = `image${idx}_url` as keyof typeof product;
-                                const checkoutKey  = `checkout_url${idx}` as keyof typeof data;
+                                const idx         = i + 1;
+                                const imageKey    = `image${idx}` as keyof typeof data;
+                                const urlKey      = `image${idx}_url` as keyof typeof product;
+                                const checkoutKey = `checkout_url${idx}` as keyof typeof data;
 
                                 return (
-                                    <div key={idx} className="space-y-2 border rounded-lg p-3 bg-slate-50">
-                                        <Label className="font-semibold text-slate-700">
-                                            Image {idx}
-                                        </Label>
+                                    <div key={idx} className="space-y-2 border rounded-xl p-4 bg-slate-50">
+                                        <Label className="font-semibold text-slate-700">Image {idx}</Label>
 
-                                        {/* Current image preview */}
                                         {product[urlKey] && (
-                                            <div className="mb-2">
-                                                <img
-                                                    src={product[urlKey]}
-                                                    alt={`Current image ${idx}`}
-                                                    className="h-20 w-20 object-cover rounded border"
-                                                />
-                                            </div>
+                                            <img
+                                                src={product[urlKey]}
+                                                alt={`Current image ${idx}`}
+                                                className="h-24 w-24 object-cover rounded-lg border shadow-sm"
+                                            />
                                         )}
 
-                                        {/* Image file input */}
                                         <Input
                                             id={imageKey}
                                             type="file"
                                             accept="image/jpeg,image/png,image/webp,image/gif"
                                             onChange={(e) => handleImageChange(e, imageKey)}
+                                            className="text-sm"
                                         />
 
                                         {data[imageKey] && (
@@ -228,12 +223,8 @@ export default function Edit() {
                                             </p>
                                         )}
 
-                                        {/* Checkout URL input */}
                                         <div className="pt-1 space-y-1">
-                                            <Label
-                                                htmlFor={String(checkoutKey)}
-                                                className="text-xs text-muted-foreground"
-                                            >
+                                            <Label htmlFor={String(checkoutKey)} className="text-xs text-muted-foreground">
                                                 Checkout URL
                                             </Label>
                                             <Input
@@ -256,14 +247,15 @@ export default function Edit() {
                         </div>
                     </div>
 
-                    <div className="pt-4 flex gap-4">
-                        <Button type="submit" disabled={processing}>
+                    {/* Action buttons — stacked on mobile */}
+                    <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                        <Button type="submit" disabled={processing} className="w-full sm:w-auto">
                             {processing ? 'Saving…' : 'Save Changes'}
                         </Button>
-                        <Button variant="outline" asChild>
+                        <Button variant="outline" className="w-full sm:w-auto" asChild>
                             <a href={indexRoute}>Cancel</a>
                         </Button>
-                        <Button className="ml-5" variant="outline" asChild>
+                        <Button variant="outline" className="w-full sm:w-auto sm:ml-auto" asChild>
                             <a href={indexRoute}>Back to Dashboard</a>
                         </Button>
                     </div>
