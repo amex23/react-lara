@@ -3,7 +3,11 @@
 return [
     'paths' => ['api/*'],
 
-    'allowed_methods' => ['*'],
+    'allowed_origins' => [
+        'https://www.shopmyday.store',
+        'https://shopmyday.store',
+        'https://your-shopify-store.myshopify.com',
+    ],
 
     'allowed_origins' => ['*'],
 

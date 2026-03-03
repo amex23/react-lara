@@ -72,7 +72,8 @@ function StatsCalendar({ userId }: { userId: number }) {
     const [stats, setStats]   = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const LARAVEL_API = 'https://react-lara-master-vibaxb.laravel.cloud';
+    // const LARAVEL_API = 'https://react-lara-master-vibaxb.laravel.cloud';
+    const LARAVEL_API = 'https://www.shopmyday.store';
 
     useEffect(() => {
         setLoading(true);
