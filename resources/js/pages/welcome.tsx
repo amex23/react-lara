@@ -131,6 +131,10 @@ export default function Welcome({
             <Head title="ShopMyDayApp - Welcome">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+
+    
+
+             
             </Head>
 
             <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
@@ -147,7 +151,7 @@ export default function Welcome({
                                     Log in
                                 </Link>
                                 {canRegister && (
-                                    <Link href={register()} className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] bg-[#CC4F37] dark:hover:border-[#62605b] text-white font-bold">
+                                    <Link href={register()} className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] bg-[#37B6FF] dark:hover:border-[#62605b] text-white font-bold">
                                         Register
                                     </Link>
                                 )}
@@ -165,7 +169,7 @@ export default function Welcome({
                                 <button
                                     key={i}
                                     onClick={() => setOverlayIndex(i)}
-                                    className="rounded-full border-[3px] border-[#CC4F37] w-[100px] h-[100px] md:w-[112px] md:h-[112px] overflow-hidden flex-shrink-0 cursor-pointer hover:scale-105 transition-transform focus:outline-none"
+                                    className="rounded-full border-[3px] border-[#37B6FF] w-[100px] h-[100px] md:w-[112px] md:h-[112px] overflow-hidden flex-shrink-0 cursor-pointer hover:scale-105 transition-transform focus:outline-none"
                                 >
                                     <img src={img} alt={`Preview ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
                                 </button>
@@ -174,8 +178,10 @@ export default function Welcome({
                     </div>
 
                     <div className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
-                        <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-[20px] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
-                            <h1 className="mb-1 text-4xl font-bold tracking-wide text-center md:text-start">ShopMyDay</h1>
+                        <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-[20px] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] ">
+                            <span className="">
+                                <h1 className="mb-1 text-4xl font-bold tracking-wide text-center md:text-start text-[#474747]">ShopMyDay</h1>
+                            </span>
                             <p className="mb-2 text-[15px] text-[#706f6c] dark:text-[#A1A09A] mt-7 leading-[24px] text-center md:text-start">
                                 Letting you post 24-hour product stories. Each story includes direct product links, making it easy for viewers to tap and buy. This story-driven approach increases engagement and boosts conversions.
                             </p>
@@ -184,7 +190,7 @@ export default function Welcome({
                         <div
                             className="relative h-[300px] md:h-[400px] -mb-px w-full shrink-0 overflow-hidden rounded-t-lg lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg"
                             style={{
-                                backgroundImage: `url('/images/shop-logo.png')`,
+                                backgroundImage: `url('/images/new-logo.png')`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                             }}
@@ -193,8 +199,8 @@ export default function Welcome({
                         </div>
                     </div>
 
-                    <div className="text-xl">20% of Profit goes to Charity</div>
-                    <div className="block text-center">ⓒ Copyright 2026 | Made with ❤️</div>
+                    <div className="text-xl text-center md:text-start">20% of Profit goes to WorldVision Charity</div>
+                    <div className="mt-3 md:mt-0 block text-center">ⓒ Copyright 2026 | Made with ❤️</div>
                 </div>
             </div>
 

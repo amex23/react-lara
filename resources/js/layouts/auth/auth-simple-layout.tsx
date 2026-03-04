@@ -23,7 +23,7 @@ export default function AuthSimpleLayout({
                         <div
                             className="relative h-[120px] lg:h-[230px] -mb-px w-[50%] shrink-0 overflow-hidden rounded-lg lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px]"
                             style={{
-                                backgroundImage: `url('/images/shop-logo.png')`,
+                                backgroundImage: `url('/images/new-logo.png')`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                             }}
