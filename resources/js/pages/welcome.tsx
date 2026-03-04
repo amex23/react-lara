@@ -128,7 +128,7 @@ export default function Welcome({
 
     return (
         <>
-            <Head title="ShopMyDayApp - Welcome">
+            <Head title="">
                 <link rel="preconnect" href="https://fonts.bunny.net" />
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
@@ -183,7 +183,7 @@ export default function Welcome({
                                 <h1 className="mb-1 text-4xl font-bold tracking-wide text-center md:text-start text-[#474747]">ShopMyDay</h1>
                             </span>
                             <p className="mb-2 text-[15px] text-[#706f6c] dark:text-[#A1A09A] mt-7 leading-[24px] text-center md:text-start">
-                                Letting you post 24-hour product stories. Each story includes direct product links, making it easy for viewers to tap and buy. This story-driven approach increases engagement and boosts conversions.
+                                Letting you post 24-hour product stories. Each story includes direct checkout links, making it easy for viewers to tap and buy. This story-driven approach increases engagement and boosts conversions.
                             </p>
                         </div>
 
