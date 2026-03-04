@@ -203,7 +203,7 @@ export default function Welcome({
                         </div>
                     </div>
 
-                    <div className="text-xl text-center md:text-start">20% of Profit goes to WorldVision Charity</div>
+                    <div className="text-xl text-center md:text-start"><b>20%</b> of Profit goes to <a href="https://www.worldvision.org.ph/"><b>WorldVision</b></a> Charity</div>
                     <div className="mt-3 md:mt-0 block text-center">ⓒ Copyright 2026 | Made with ❤️</div>
                 </div>
             </div>
