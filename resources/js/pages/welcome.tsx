@@ -94,7 +94,7 @@ function StoryOverlay({
                     onClick={onClose}
                     className="absolute top-8 right-4 z-20 w-8 h-8 flex items-center justify-center bg-black/40 rounded-full hover:bg-black/60 transition"
                 >
-                    <span className="font-bold text-[#E82E13]">✕</span>
+                    <span className="font-bold text-white">✕</span>
                 </button>
 
                 {/* Tap zones */}
@@ -114,9 +114,9 @@ function StoryOverlay({
                 <div className="absolute mt-[-14px] flex justify-center bottom-10 left-0 right-0">
                     <span className='bg-gray-500 text-white font-bold px-5 py-2'>CHECKOUT</span>
                 </div>
-                <div className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-xs z-10">
+                {/* <div className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-xs z-10">
                     {current + 1} / {images.length}
-                </div>
+                </div> */}
             </div>
         </div>
     );
