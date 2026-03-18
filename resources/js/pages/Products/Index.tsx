@@ -68,52 +68,28 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
-    const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'range'>('today');
+    const [filter, setFilter] = useState<'today' | 'week' | 'month'>('today');
     const [stats, setStats]   = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [selecting, setSelecting] = useState<'start' | 'end'>('start');
-    const [currentMonth, setCurrentMonth] = useState(new Date());
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    
     // const LARAVEL_API = 'https://react-lara-master-vibaxb.laravel.cloud';
     const LARAVEL_API = 'https://www.shopmyday.store';
 
-    // Initialize dates when switching to range filter
-    const handleFilterChange = (newFilter: typeof filter) => {
-        setFilter(newFilter);
-        if (newFilter === 'range') {
-            setSelecting('start');
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
-            setEndDate(todayStr);
-        }
-    };
-
     useEffect(() => {
         setLoading(true);
-        
-        let url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`;
-        
-        if (filter === 'range' && startDate && endDate) {
-            url += `&startDate=${startDate}&endDate=${endDate}`;
-        }
-
-        fetch(url)
+        fetch(`${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`)
             .then(r => r.json())
             .then(data => { setStats(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [filter, userId, startDate, endDate]);
+    }, [filter, userId]);
 
     // Build calendar days for current month
-    const year       = currentMonth.getFullYear();
-    const month      = currentMonth.getMonth();
+    const now        = new Date();
+    const year       = now.getFullYear();
+    const month      = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay   = new Date(year, month, 1).getDay();
-    const monthName  = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const monthName  = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
     // Map daily data
     const dailyMap: Record<string, { views: number; checkouts: number }> = {};
@@ -123,61 +99,17 @@ function StatsCalendar({ userId }: { userId: number }) {
         if (e.type === 'checkout') dailyMap[e.date].checkouts += e.count;
     });
 
-    const today = new Date().toISOString().split('T')[0];
-
-    const handlePrevMonth = () => {
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
-    };
-
-    const handleNextMonth = () => {
-        const nextMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-        const today = new Date();
-        if (nextMonth <= today) {
-            setCurrentMonth(nextMonth);
-        }
-    };
-
-    const handleDayClick = (dateStr: string) => {
-        if (filter !== 'range') return;
-        
-        const date = new Date(dateStr);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (date > today) return;
-        
-        if (selecting === 'start') {
-            setStartDate(dateStr);
-            setEndDate(dateStr); 
-            setSelecting('end');
-        } else {
-            if (new Date(dateStr) < new Date(startDate)) {
-                setStartDate(dateStr);
-            } else {
-                setEndDate(dateStr);
-                setSelecting('start');
-            }
-        }
-    };
-
-    const handleQuickSelect = (days: number) => {
-        const end = new Date(todayStr);
-        const start = new Date();
-        start.setDate(start.getDate() - days);
-        setStartDate(start.toISOString().split('T')[0]);
-        setEndDate(end.toISOString().split('T')[0]);
-        setFilter('range');
-    };
+    const today = now.toISOString().split('T')[0];
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
 
             {/* Filter tabs */}
             <div className="flex gap-2 mb-4 justify-center">
-                {(['today', 'week', 'month', 'range'] as const).map(f => (
+                {(['today', 'week', 'month'] as const).map(f => (
                     <button
                         key={f}
-                        onClick={() => handleFilterChange(f)}
+                        onClick={() => setFilter(f)}
                         className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                             filter === f
                                 ? 'bg-slate-800 text-white'
@@ -188,51 +120,6 @@ function StatsCalendar({ userId }: { userId: number }) {
                     </button>
                 ))}
             </div>
-
-            {/* Range selector */}
-            {filter === 'range' && (
-                <div className="mb-4">
-                    {/* Quick select buttons */}
-                    <div className="flex gap-1 justify-center flex-wrap mb-3">
-                        <button 
-                            onClick={() => handleQuickSelect(7)}
-                            className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded text-slate-600"
-                        >
-                            7 days
-                        </button>
-                        <button 
-                            onClick={() => handleQuickSelect(30)}
-                            className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded text-slate-600"
-                        >
-                            30 days
-                        </button>
-                        <button 
-                            onClick={() => handleQuickSelect(90)}
-                            className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded text-slate-600"
-                        >
-                            90 days
-                        </button>
-                    </div>
-
-                    <div className="flex gap-2 justify-center items-center p-2 bg-slate-50 rounded-lg border border-slate-200">
-                        <div 
-                            className={`flex flex-col p-1 px-2 rounded cursor-pointer ${selecting === 'start' ? 'ring-2 ring-slate-400 bg-white' : ''}`} 
-                            onClick={() => setSelecting('start')}
-                        >
-                            <span className="text-[9px] font-medium text-slate-400 uppercase">From</span>
-                            <span className="text-xs font-medium">{startDate || 'Select'}</span>
-                        </div>
-                        <div className="text-slate-300">→</div>
-                        <div 
-                            className={`flex flex-col p-1 px-2 rounded cursor-pointer ${selecting === 'end' ? 'ring-2 ring-slate-400 bg-white' : ''}`} 
-                            onClick={() => setSelecting('end')}
-                        >
-                            <span className="text-[9px] font-medium text-slate-400 uppercase">To</span>
-                            <span className="text-xs font-medium">{endDate || 'Select'}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Stats summary */}
             <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
@@ -251,27 +138,10 @@ function StatsCalendar({ userId }: { userId: number }) {
                 </div>
             </div>
 
-            {/* Calendar — only shown on month or range view */}
-            {(filter === 'month' || filter === 'range') && (
+            {/* Calendar — only shown on month view */}
+            {filter === 'month' && (
                 <div>
-                    {/* Month navigation */}
-                    <div className="flex justify-between items-center mb-3">
-                        <button 
-                            onClick={handlePrevMonth}
-                            className="p-1 hover:bg-slate-100 rounded text-slate-600"
-                        >
-                            ←
-                        </button>
-                        <h3 className="text-sm font-semibold text-center text-slate-600">{monthName}</h3>
-                        <button 
-                            onClick={handleNextMonth}
-                            className="p-1 hover:bg-slate-100 rounded text-slate-600"
-                            disabled={currentMonth >= new Date()}
-                        >
-                            →
-                        </button>
-                    </div>
-                    
+                    <h3 className="text-sm font-semibold text-center text-slate-600 mb-3">{monthName}</h3>
                     <div className="grid grid-cols-7 gap-1 text-center">
                         {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
                             <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
@@ -289,30 +159,25 @@ function StatsCalendar({ userId }: { userId: number }) {
                             const data    = dailyMap[dateStr];
                             const isToday = dateStr === today;
                             const hasData = !!data;
-                            const isSelected = filter === 'range' && (dateStr === startDate || dateStr === endDate);
-                            const isInRange = filter === 'range' && dateStr > startDate && dateStr < endDate;
-                            const isFuture = new Date(dateStr) > new Date(today);
 
                             return (
                                 <div
                                     key={day}
-                                    onClick={() => handleDayClick(dateStr)}
                                     title={data ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : ''}
-                                    className={`relative rounded-lg p-1 text-xs transition-colors ${
-                                        isFuture ? 'opacity-30 cursor-not-allowed' :
-                                        isSelected ? 'bg-slate-800 text-white font-bold cursor-pointer' :
-                                        isInRange ? 'bg-slate-100 text-slate-800 cursor-pointer' :
-                                        isToday ? 'bg-slate-800 text-white font-bold cursor-pointer' :
-                                        hasData ? 'bg-green-50 text-green-800 cursor-pointer' : 
-                                        'text-slate-500 cursor-pointer hover:bg-slate-100'
+                                    className={`relative rounded-lg p-1 text-xs cursor-default transition-colors ${
+                                        isToday
+                                            ? 'bg-slate-800 text-white font-bold'
+                                            : hasData
+                                            ? 'bg-green-50 text-green-800'
+                                            : 'text-slate-500'
                                     }`}
                                 >
                                     <div>{day}</div>
                                     {data?.views ? (
-                                        <div className={`text-[9px] leading-tight ${isSelected || isToday ? 'text-blue-200' : 'text-blue-500'}`}>{data.views}v</div>
+                                        <div className="text-[9px] leading-tight text-blue-500">{data.views}v</div>
                                     ) : null}
                                     {data?.checkouts ? (
-                                        <div className={`text-[9px] leading-tight ${isSelected || isToday ? 'text-orange-200' : 'text-orange-500'}`}>{data.checkouts}c</div>
+                                        <div className="text-[9px] leading-tight text-orange-500">{data.checkouts}c</div>
                                     ) : null}
                                 </div>
                             );
