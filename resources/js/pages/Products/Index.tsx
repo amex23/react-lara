@@ -65,7 +65,6 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
     );
 }
 
-// ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
     const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'range'>('today');
     const [stats, setStats] = useState<Stats | null>(null);
@@ -105,32 +104,34 @@ function StatsCalendar({ userId }: { userId: number }) {
 
         const dailyMap: Record<string, { views: number; checkouts: number }> = {};
         
-        // Local calculation ensures big numbers match the calendar data exactly
-        let localViews = 0;
-        let localCheckouts = 0;
+        // FORCED CALCULATION: We ignore stats.views and manually sum the daily data
+        let totalViews = 0;
+        let totalCheckouts = 0;
 
-        stats?.daily?.forEach(e => {
-            if (!dailyMap[e.date]) dailyMap[e.date] = { views: 0, checkouts: 0 };
-            if (e.type === 'view') {
-                dailyMap[e.date].views += e.count;
-                localViews += e.count;
-            }
-            if (e.type === 'checkout') {
-                dailyMap[e.date].checkouts += e.count;
-                localCheckouts += e.count;
-            }
-        });
+        if (stats?.daily) {
+            stats.daily.forEach(e => {
+                const date = e.date;
+                if (!dailyMap[date]) dailyMap[date] = { views: 0, checkouts: 0 };
+                
+                if (e.type === 'view') {
+                    dailyMap[date].views += e.count;
+                    totalViews += e.count;
+                } else if (e.type === 'checkout') {
+                    dailyMap[date].checkouts += e.count;
+                    totalCheckouts += e.count;
+                }
+            });
+        }
 
         return { 
             year, month, daysInMonth, firstDay, monthName, dailyMap,
-            displayViews: (filter === 'range' || filter === 'month') ? localViews : (stats?.views ?? 0),
-            displayCheckouts: (filter === 'range' || filter === 'month') ? localCheckouts : (stats?.checkouts ?? 0)
+            displayViews: totalViews,
+            displayCheckouts: totalCheckouts
         };
     }, [stats, startDate, filter]);
 
     const handleDayClick = (dateStr: string) => {
         if (filter !== 'range') return;
-
         if (selecting === 'start') {
             setStartDate(dateStr);
             setEndDate(dateStr); 
@@ -171,16 +172,16 @@ function StatsCalendar({ userId }: { userId: number }) {
             </div>
 
             {filter === 'range' && (
-                <div className="flex flex-col gap-2 mb-4 items-center">
+                <div className="flex flex-col gap-2 mb-4 items-center animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex gap-2 justify-center items-center p-2 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className={`flex flex-col p-1 px-2 rounded ${selecting === 'start' ? 'ring-2 ring-blue-500 bg-white' : ''}`}>
+                        <div className={`flex flex-col p-1 px-2 rounded cursor-pointer ${selecting === 'start' ? 'ring-2 ring-blue-500 bg-white' : ''}`} onClick={() => setSelecting('start')}>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">From</span>
-                            <input type="date" className="text-xs border-none bg-transparent p-0 focus:ring-0" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                            <span className="text-xs font-medium">{startDate}</span>
                         </div>
                         <div className="text-slate-300">→</div>
-                        <div className={`flex flex-col p-1 px-2 rounded ${selecting === 'end' ? 'ring-2 ring-blue-500 bg-white' : ''}`}>
+                        <div className={`flex flex-col p-1 px-2 rounded cursor-pointer ${selecting === 'end' ? 'ring-2 ring-blue-500 bg-white' : ''}`} onClick={() => setSelecting('end')}>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">To</span>
-                            <input type="date" className="text-xs border-none bg-transparent p-0 focus:ring-0" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                            <span className="text-xs font-medium">{endDate}</span>
                         </div>
                     </div>
                 </div>
@@ -189,14 +190,14 @@ function StatsCalendar({ userId }: { userId: number }) {
             <div className="flex justify-around mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="text-center">
                     <div className="text-3xl font-extrabold text-slate-900 leading-none">
-                        {loading ? '—' : calendarMeta.displayViews}
+                        {loading ? '...' : calendarMeta.displayViews}
                     </div>
                     <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-1">Views</div>
                 </div>
                 <div className="w-px bg-slate-200 h-10 self-center" />
                 <div className="text-center">
                     <div className="text-3xl font-extrabold text-slate-900 leading-none">
-                        {loading ? '—' : calendarMeta.displayCheckouts}
+                        {loading ? '...' : calendarMeta.displayCheckouts}
                     </div>
                     <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-1">Checkouts</div>
                 </div>
@@ -223,7 +224,7 @@ function StatsCalendar({ userId }: { userId: number }) {
                                     key={day} 
                                     onClick={() => handleDayClick(dateStr)}
                                     className={`relative rounded-lg p-1 text-xs min-h-[44px] transition-all cursor-pointer flex flex-col items-center justify-start border ${
-                                        isSelected ? 'bg-blue-600 border-blue-700 text-white font-bold z-10 shadow-md scale-105' :
+                                        isSelected ? 'bg-blue-600 border-blue-700 text-white font-bold z-10 shadow-md' :
                                         isInRange ? 'bg-blue-50 border-blue-100 text-blue-800' :
                                         isToday ? 'border-slate-900 border-2 text-slate-900 font-bold' :
                                         data ? 'bg-green-50 text-green-800 border-green-100' : 
