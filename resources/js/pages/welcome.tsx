@@ -187,7 +187,7 @@ export default function Welcome({
 
                             </span>
                             <p className="mb-2 text-[15px] text-[#706f6c] dark:text-[#A1A09A] mt-7 leading-[24px] text-center md:text-start">
-                                Letting you post 24-hour product stories. Each story your day highlights with direct checkout links, making it easy for viewers to tap and buy. This story-driven approach increases engagement and boosts conversions.
+                                Letting you post 24-hour product stories. Each story your day highlights with direct checkout links, making it easy for viewers to tap and buy. This story-driven approach increases engagement and boosts conversion rates.
                             </p>
                         </div>
 
