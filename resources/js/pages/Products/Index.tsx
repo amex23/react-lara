@@ -2,8 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Head, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { route } from 'ziggy-js';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Megaphone, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import {
     Table,
@@ -77,7 +76,6 @@ function StatsCalendar({ userId }: { userId: number }) {
     const [endDate, setEndDate] = useState(todayStr);
     const [selecting, setSelecting] = useState<'start' | 'end'>('start');
 
-    // Dynamic API Base ensures this works on both staging and main domains
     const API_BASE = typeof window !== 'undefined' ? window.location.origin : '';
 
     useEffect(() => {
@@ -90,13 +88,15 @@ function StatsCalendar({ userId }: { userId: number }) {
 
         fetch(url)
             .then(r => r.json())
-            .then(data => { setStats(data); setLoading(false); })
+            .then(data => { 
+                setStats(data); 
+                setLoading(false); 
+            })
             .catch(() => setLoading(false));
     }, [filter, userId, startDate, endDate, API_BASE]);
 
     const calendarMeta = useMemo(() => {
-        // Fallback to today if range dates are invalid
-        const baseDate = filter === 'range' && startDate ? new Date(startDate) : new Date();
+        const baseDate = filter === 'range' ? new Date(startDate) : new Date();
         const year = baseDate.getFullYear();
         const month = baseDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -104,13 +104,28 @@ function StatsCalendar({ userId }: { userId: number }) {
         const monthName = baseDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
         const dailyMap: Record<string, { views: number; checkouts: number }> = {};
+        
+        // Local calculation ensures big numbers match the calendar data exactly
+        let localViews = 0;
+        let localCheckouts = 0;
+
         stats?.daily?.forEach(e => {
             if (!dailyMap[e.date]) dailyMap[e.date] = { views: 0, checkouts: 0 };
-            if (e.type === 'view')     dailyMap[e.date].views     += e.count;
-            if (e.type === 'checkout') dailyMap[e.date].checkouts += e.count;
+            if (e.type === 'view') {
+                dailyMap[e.date].views += e.count;
+                localViews += e.count;
+            }
+            if (e.type === 'checkout') {
+                dailyMap[e.date].checkouts += e.count;
+                localCheckouts += e.count;
+            }
         });
 
-        return { year, month, daysInMonth, firstDay, monthName, dailyMap };
+        return { 
+            year, month, daysInMonth, firstDay, monthName, dailyMap,
+            displayViews: (filter === 'range' || filter === 'month') ? localViews : (stats?.views ?? 0),
+            displayCheckouts: (filter === 'range' || filter === 'month') ? localCheckouts : (stats?.checkouts ?? 0)
+        };
     }, [stats, startDate, filter]);
 
     const handleDayClick = (dateStr: string) => {
@@ -118,6 +133,7 @@ function StatsCalendar({ userId }: { userId: number }) {
 
         if (selecting === 'start') {
             setStartDate(dateStr);
+            setEndDate(dateStr); 
             setSelecting('end');
         } else {
             if (new Date(dateStr) < new Date(startDate)) {
@@ -130,17 +146,23 @@ function StatsCalendar({ userId }: { userId: number }) {
     };
 
     return (
-        <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
+        <div className="w-full bg-white border rounded-xl p-4 shadow-sm max-w-md mx-auto">
             <div className="flex flex-wrap gap-2 mb-4 justify-center">
                 {(['today', 'week', 'month', 'range'] as const).map(f => (
                     <button
                         key={f}
                         onClick={() => {
                             setFilter(f);
-                            if (f === 'range') setSelecting('start');
+                            if (f === 'range') {
+                                setSelecting('start');
+                                const weekAgo = new Date();
+                                weekAgo.setDate(weekAgo.getDate() - 7);
+                                setStartDate(weekAgo.toISOString().split('T')[0]);
+                                setEndDate(todayStr);
+                            }
                         }}
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            filter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                            filter === f ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                     >
                         {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -150,38 +172,42 @@ function StatsCalendar({ userId }: { userId: number }) {
 
             {filter === 'range' && (
                 <div className="flex flex-col gap-2 mb-4 items-center">
-                    <div className="flex flex-wrap gap-3 justify-center items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className={`flex items-center gap-2 p-1 rounded ${selecting === 'start' ? 'ring-2 ring-blue-400 bg-white' : ''}`}>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">From:</span>
+                    <div className="flex gap-2 justify-center items-center p-2 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className={`flex flex-col p-1 px-2 rounded ${selecting === 'start' ? 'ring-2 ring-blue-500 bg-white' : ''}`}>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">From</span>
                             <input type="date" className="text-xs border-none bg-transparent p-0 focus:ring-0" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                         </div>
-                        <div className={`flex items-center gap-2 p-1 rounded ${selecting === 'end' ? 'ring-2 ring-blue-400 bg-white' : ''}`}>
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">To:</span>
+                        <div className="text-slate-300">→</div>
+                        <div className={`flex flex-col p-1 px-2 rounded ${selecting === 'end' ? 'ring-2 ring-blue-500 bg-white' : ''}`}>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">To</span>
                             <input type="date" className="text-xs border-none bg-transparent p-0 focus:ring-0" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                         </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 italic">Select start and end dates on the calendar</p>
                 </div>
             )}
 
-            <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
+            <div className="flex justify-around mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.views ?? 0}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">Views</div>
+                    <div className="text-3xl font-extrabold text-slate-900 leading-none">
+                        {loading ? '—' : calendarMeta.displayViews}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-1">Views</div>
                 </div>
-                <div className="w-px bg-slate-200" />
+                <div className="w-px bg-slate-200 h-10 self-center" />
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.checkouts ?? 0}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">Checkouts</div>
+                    <div className="text-3xl font-extrabold text-slate-900 leading-none">
+                        {loading ? '—' : calendarMeta.displayCheckouts}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-1">Checkouts</div>
                 </div>
             </div>
 
             {(filter === 'month' || filter === 'range') && (
-                <div>
-                    <h3 className="text-sm font-semibold text-center text-slate-600 mb-3">{calendarMeta.monthName}</h3>
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <h3 className="text-xs font-bold text-center text-slate-400 uppercase tracking-widest mb-4">{calendarMeta.monthName}</h3>
                     <div className="grid grid-cols-7 gap-1 text-center">
-                        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-                            <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
+                        {['S','M','T','W','T','F','S'].map(d => (
+                            <div key={d} className="text-[10px] text-slate-300 font-bold py-1">{d}</div>
                         ))}
                         {Array.from({ length: calendarMeta.firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
                         {Array.from({ length: calendarMeta.daysInMonth }).map((_, i) => {
@@ -196,17 +222,17 @@ function StatsCalendar({ userId }: { userId: number }) {
                                 <div 
                                     key={day} 
                                     onClick={() => handleDayClick(dateStr)}
-                                    className={`relative rounded-lg p-1 text-xs min-h-[40px] transition-all cursor-pointer ${
-                                        isSelected ? 'bg-blue-600 text-white font-bold scale-105 z-10 shadow-md' :
-                                        isInRange ? 'bg-blue-50 text-blue-800' :
-                                        isToday ? 'bg-slate-800 text-white font-bold' :
-                                        data ? 'bg-green-50 text-green-800 border border-green-100' : 
-                                        'text-slate-500 hover:bg-slate-100'
+                                    className={`relative rounded-lg p-1 text-xs min-h-[44px] transition-all cursor-pointer flex flex-col items-center justify-start border ${
+                                        isSelected ? 'bg-blue-600 border-blue-700 text-white font-bold z-10 shadow-md scale-105' :
+                                        isInRange ? 'bg-blue-50 border-blue-100 text-blue-800' :
+                                        isToday ? 'border-slate-900 border-2 text-slate-900 font-bold' :
+                                        data ? 'bg-green-50 text-green-800 border-green-100' : 
+                                        'text-slate-500 border-transparent hover:bg-slate-50'
                                     }`}
                                 >
-                                    <div>{day}</div>
-                                    {data?.views && <div className={`text-[9px] ${isSelected || isToday ? 'text-blue-200' : 'text-blue-500'}`}>{data.views}v</div>}
-                                    {data?.checkouts && <div className={`text-[9px] ${isSelected || isToday ? 'text-orange-200' : 'text-orange-500'}`}>{data.checkouts}c</div>}
+                                    <span className="mb-0.5">{day}</span>
+                                    {data?.views > 0 && <span className={`text-[8px] font-medium leading-none ${isSelected ? 'text-blue-100' : 'text-blue-500'}`}>{data.views}v</span>}
+                                    {data?.checkouts > 0 && <span className={`text-[8px] font-medium leading-none ${isSelected ? 'text-orange-100' : 'text-orange-500'}`}>{data.checkouts}c</span>}
                                 </div>
                             );
                         })}
@@ -218,7 +244,7 @@ function StatsCalendar({ userId }: { userId: number }) {
 }
 
 export default function Index() {
-    const { products, authUser, flash, createUrl, editUrlBase } = usePage<PageProps>().props;
+    const { products, authUser, createUrl, editUrlBase } = usePage<PageProps>().props;
     const isAdmin = authUser.user_type === 'admin';
     const myProfile = !isAdmin ? products[0] : null;
 
@@ -226,45 +252,53 @@ export default function Index() {
         <AppLayout breadcrumbs={[{ title: isAdmin ? 'Products' : 'Dashboard', href: isAdmin ? route('products.index') : '/dashboard' }]}>
             <Head title={isAdmin ? 'All Store Profiles' : 'My Store Profile'} />
             <div className="w-full max-w-7xl mx-auto py-6 px-4 lg:px-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-7 mb-6">
-                    <div className='w-full flex justify-center flex-col gap-y-5'>
-                        <h1 className="text-3xl text-center font-bold">{isAdmin ? 'All Store Profiles' : 'My Store Profile'}</h1>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-7 mb-10">
+                    <div className='w-full flex justify-center flex-col gap-y-6'>
+                        <h1 className="text-3xl text-center font-extrabold tracking-tight text-slate-900">
+                            {isAdmin ? 'All Store Profiles' : 'My Store Profile'}
+                        </h1>
                         {!isAdmin && myProfile?.subscription && myProfile?.id && <StatsCalendar userId={myProfile.id} />}
                     </div>
                     {isAdmin ? (
-                        <a href={route('register.admin')}><Button><Plus className="mr-2 h-4 w-4" />New User</Button></a>
+                        <a href={route('register.admin')}><Button className="shadow-sm"><Plus className="mr-2 h-4 w-4" />New User</Button></a>
                     ) : !products.length ? (
-                        <a href={createUrl}><Button><Plus className="mr-2 h-4 w-4" />Set Up My Store</Button></a>
+                        <a href={createUrl}><Button className="shadow-sm"><Plus className="mr-2 h-4 w-4" />Set Up My Store</Button></a>
                     ) : null}
                 </div>
 
-                <div className="hidden md:block overflow-x-auto rounded-lg border bg-white shadow-sm">
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                     <Table>
-                        <TableHeader>
+                        <TableHeader className="bg-slate-50">
                             <TableRow>
-                                {isAdmin && <TableHead>Owner</TableHead>}
-                                <TableHead>My Images</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                {isAdmin && <TableHead className="font-bold text-slate-700">Owner</TableHead>}
+                                <TableHead className="font-bold text-slate-700">Images</TableHead>
+                                <TableHead className="font-bold text-slate-700">Name</TableHead>
+                                <TableHead className="font-bold text-slate-700">Price</TableHead>
+                                <TableHead className="font-bold text-slate-700">Status</TableHead>
+                                <TableHead className="text-right font-bold text-slate-700">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {products.map((product) => (
-                                <TableRow key={product.id}>
-                                    {isAdmin && <TableCell>{product.owner_name}</TableCell>}
+                                <TableRow key={product.id} className="hover:bg-slate-50/50">
+                                    {isAdmin && <TableCell className="font-medium">{product.owner_name}</TableCell>}
                                     <TableCell>
-                                        <div className="flex gap-1.5 flex-wrap max-w-[140px]">
+                                        <div className="flex gap-2 flex-wrap max-w-[140px]">
                                             {[1,2,3,4,5,6].map(i => {
                                                 const key = `image${i}_url` as keyof Product;
-                                                return product[key] && <img key={i} src={product[key] as string} className="w-10 h-10 object-cover rounded border shadow-sm" />;
+                                                return product[key] && <img key={i} src={product[key] as string} className="w-10 h-10 object-cover rounded-md border border-slate-200 shadow-sm" />;
                                             })}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="font-medium">{product.name}</TableCell>
-                                    <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
-                                    <TableCell>{product.subscription ? <span className="text-green-600 font-medium">✓ Connected</span> : <span className="text-slate-400">✗ Not Connected</span>}</TableCell>
+                                    <TableCell className="font-semibold text-slate-900">{product.name}</TableCell>
+                                    <TableCell className="text-slate-600">{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
+                                    <TableCell>
+                                        {product.subscription ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-100 uppercase tracking-wider">Connected</span>
+                                        ) : (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-400 border border-slate-100 uppercase tracking-wider">Inactive</span>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-right space-x-2">
                                         <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
                                         {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
