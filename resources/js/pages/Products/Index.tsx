@@ -384,6 +384,7 @@ export default function Index() {
                                 {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
                             </TableCell>
                         </TableRow>
+                        
                     ))}
                 </TableBody>
             </Table>
