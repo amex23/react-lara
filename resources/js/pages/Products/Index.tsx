@@ -77,11 +77,13 @@ function StatsCalendar({ userId }: { userId: number }) {
     const [endDate, setEndDate] = useState(todayStr);
     const [selecting, setSelecting] = useState<'start' | 'end'>('start');
 
+    // Dynamic API Base ensures this works on both staging and main domains
     const API_BASE = typeof window !== 'undefined' ? window.location.origin : '';
 
     useEffect(() => {
         setLoading(true);
         let url = `${API_BASE}/api/store-profile/${userId}/stats?filter=${filter}`;
+        
         if (filter === 'range') {
             url += `&startDate=${startDate}&endDate=${endDate}`;
         }
@@ -92,9 +94,9 @@ function StatsCalendar({ userId }: { userId: number }) {
             .catch(() => setLoading(false));
     }, [filter, userId, startDate, endDate, API_BASE]);
 
-    // Calendar logic
     const calendarMeta = useMemo(() => {
-        const baseDate = filter === 'range' ? new Date(startDate) : new Date();
+        // Fallback to today if range dates are invalid
+        const baseDate = filter === 'range' && startDate ? new Date(startDate) : new Date();
         const year = baseDate.getFullYear();
         const month = baseDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -111,15 +113,13 @@ function StatsCalendar({ userId }: { userId: number }) {
         return { year, month, daysInMonth, firstDay, monthName, dailyMap };
     }, [stats, startDate, filter]);
 
-    // Handle clicking a day on the calendar
     const handleDayClick = (dateStr: string) => {
         if (filter !== 'range') return;
 
         if (selecting === 'start') {
             setStartDate(dateStr);
-            setSelecting('end'); // Auto-switch to selecting the end date
+            setSelecting('end');
         } else {
-            // Ensure end date isn't before start date
             if (new Date(dateStr) < new Date(startDate)) {
                 setStartDate(dateStr);
             } else {
@@ -131,7 +131,6 @@ function StatsCalendar({ userId }: { userId: number }) {
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
-            {/* Filter tabs */}
             <div className="flex flex-wrap gap-2 mb-4 justify-center">
                 {(['today', 'week', 'month', 'range'] as const).map(f => (
                     <button
@@ -149,7 +148,6 @@ function StatsCalendar({ userId }: { userId: number }) {
                 ))}
             </div>
 
-            {/* Range Selectors */}
             {filter === 'range' && (
                 <div className="flex flex-col gap-2 mb-4 items-center">
                     <div className="flex flex-wrap gap-3 justify-center items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
@@ -162,11 +160,10 @@ function StatsCalendar({ userId }: { userId: number }) {
                             <input type="date" className="text-xs border-none bg-transparent p-0 focus:ring-0" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                         </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 italic">Click dates on the calendar to set your range</p>
+                    <p className="text-[10px] text-slate-400 italic">Select start and end dates on the calendar</p>
                 </div>
             )}
 
-            {/* Stats summary */}
             <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
                 <div className="text-center">
                     <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.views ?? 0}</div>
@@ -200,7 +197,7 @@ function StatsCalendar({ userId }: { userId: number }) {
                                     key={day} 
                                     onClick={() => handleDayClick(dateStr)}
                                     className={`relative rounded-lg p-1 text-xs min-h-[40px] transition-all cursor-pointer ${
-                                        isSelected ? 'bg-blue-600 text-white font-bold scale-105 z-10' :
+                                        isSelected ? 'bg-blue-600 text-white font-bold scale-105 z-10 shadow-md' :
                                         isInRange ? 'bg-blue-50 text-blue-800' :
                                         isToday ? 'bg-slate-800 text-white font-bold' :
                                         data ? 'bg-green-50 text-green-800 border border-green-100' : 
