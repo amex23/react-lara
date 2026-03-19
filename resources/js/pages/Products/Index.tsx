@@ -69,7 +69,7 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
     const [filter, setFilter] = useState<'today' | 'week' | 'month'>('today');
-    const [stats, setStats] = useState<Stats | null>(null);
+    const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const LARAVEL_API = 'https://www.shopmyday.store';
@@ -85,40 +85,42 @@ function StatsCalendar({ userId }: { userId: number }) {
             .catch(() => setLoading(false));
     }, [filter, userId]);
 
-    // Calendar logic constants
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay = new Date(year, month, 1).getDay();
     const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-    const today = now.toISOString().split('T')[0];
+    
+    // Normalize "today" to YYYY-MM-DD
+    const todayStr = new Date().toISOString().split('T')[0];
 
-    // Memoized Map to prevent Saturday/Sunday missing due to lookup errors
+    // FIX: Normalize database dates to strict YYYY-MM-DD keys
     const dailyMap = useMemo(() => {
         const map: Record<string, { views: number; checkouts: number }> = {};
         if (!stats?.daily) return map;
 
-        stats.daily.forEach(e => {
-            if (!map[e.date]) map[e.date] = { views: 0, checkouts: 0 };
-            if (e.type === 'view') map[e.date].views += e.count;
-            if (e.type === 'checkout') map[e.date].checkouts += e.count;
+        stats.daily.forEach((e: any) => {
+            // Force the date string from DB into a standardized format
+            const d = new Date(e.date + 'T00:00:00'); 
+            const dateKey = d.toISOString().split('T')[0];
+            
+            if (!map[dateKey]) map[dateKey] = { views: 0, checkouts: 0 };
+            if (e.type === 'view') map[dateKey].views += Number(e.count);
+            if (e.type === 'checkout') map[dateKey].checkouts += Number(e.count);
         });
         return map;
     }, [stats]);
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
-            {/* Filter tabs */}
             <div className="flex gap-2 mb-4 justify-center">
                 {(['today', 'week', 'month'] as const).map(f => (
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
                         className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            filter === f
-                                ? 'bg-slate-800 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            filter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                     >
                         {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -126,24 +128,18 @@ function StatsCalendar({ userId }: { userId: number }) {
                 ))}
             </div>
 
-            {/* Stats summary */}
             <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">
-                        {loading ? '—' : stats?.views ?? 0}
-                    </div>
+                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.views ?? 0}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Views</div>
                 </div>
                 <div className="w-px bg-slate-200" />
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">
-                        {loading ? '—' : stats?.checkouts ?? 0}
-                    </div>
+                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.checkouts ?? 0}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Checkouts</div>
                 </div>
             </div>
 
-            {/* Calendar — only shown on month view */}
             {filter === 'month' && (
                 <div>
                     <h3 className="text-sm font-semibold text-center text-slate-600 mb-3">{monthName}</h3>
@@ -152,47 +148,40 @@ function StatsCalendar({ userId }: { userId: number }) {
                             <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
                         ))}
 
-                        {/* Empty cells for first day offset */}
-                        {Array.from({ length: firstDay }).map((_, i) => (
-                            <div key={`empty-${i}`} />
-                        ))}
+                        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
 
-                        {/* Day cells */}
                         {Array.from({ length: daysInMonth }).map((_, i) => {
                             const dayNum = i + 1;
-                            // Pad single digits (1 -> 01) to match ISO YYYY-MM-DD
-                            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                            
+                            // FIX: Safe Date generation that matches our dailyMap keys
+                            const cellDate = new Date(year, month, dayNum, 0, 0, 0);
+                            const dateStr = cellDate.toISOString().split('T')[0];
+                            
                             const data = dailyMap[dateStr];
-                            const isToday = dateStr === today;
+                            const isToday = dateStr === todayStr;
                             const hasData = !!data && (data.views > 0 || data.checkouts > 0);
 
                             return (
                                 <div
                                     key={dayNum}
-                                    title={data ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : ''}
-                                    className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[42px] flex flex-col items-center ${
-                                        isToday
-                                            ? 'bg-slate-800 text-white font-bold'
-                                            : hasData
-                                            ? 'bg-green-50 text-green-800 border border-green-100'
-                                            : 'text-slate-500'
+                                    className={`relative rounded-lg p-1 text-xs transition-all min-h-[44px] flex flex-col items-center ${
+                                        isToday ? 'bg-slate-800 text-white font-bold' : 
+                                        hasData ? 'bg-green-50 text-green-800 border border-green-100' : 'text-slate-500'
                                     }`}
                                 >
                                     <span>{dayNum}</span>
-                                    <div className="mt-auto">
+                                    <div className="mt-auto flex flex-col items-center gap-0">
                                         {data?.views > 0 && (
-                                            <div className="text-[9px] leading-tight text-blue-500 font-bold">{data.views}v</div>
+                                            <span className="text-[9px] leading-none text-blue-500 font-bold">{data.views}v</span>
                                         )}
                                         {data?.checkouts > 0 && (
-                                            <div className="text-[9px] leading-tight text-orange-500 font-bold">{data.checkouts}c</div>
+                                            <span className="text-[9px] leading-none text-orange-500 font-bold">{data.checkouts}c</span>
                                         )}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-
-                    {/* Legend */}
                     <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
                         <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
