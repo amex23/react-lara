@@ -91,10 +91,9 @@ function StatsCalendar({ userId }: { userId: number }) {
     const firstDay   = new Date(year, month, 1).getDay();
     const monthName  = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-    // Map daily data - normalize date format to YYYY-MM-DD
-    const dailyMap: Record<string, { views: number; checkouts: number }> = {};
+    // Map daily data from API
+    const apiDataMap: Record<string, { views: number; checkouts: number }> = {};
     stats?.daily?.forEach(e => {
-        // Handle various date formats: "2025-03-20", "2025-03-20T00:00:00.000000Z", "2025-03-20 14:30:00"
         let dateKey = e.date;
         if (typeof dateKey === 'string') {
             if (dateKey.includes('T')) {
@@ -104,9 +103,29 @@ function StatsCalendar({ userId }: { userId: number }) {
             }
         }
         
-        if (!dailyMap[dateKey]) dailyMap[dateKey] = { views: 0, checkouts: 0 };
-        if (e.type === 'view')     dailyMap[dateKey].views     += e.count;
-        if (e.type === 'checkout') dailyMap[dateKey].checkouts += e.count;
+        if (!apiDataMap[dateKey]) apiDataMap[dateKey] = { views: 0, checkouts: 0 };
+        if (e.type === 'view')     apiDataMap[dateKey].views     += e.count;
+        if (e.type === 'checkout') apiDataMap[dateKey].checkouts += e.count;
+    });
+
+    // Generate all days of the month with data (or zeros)
+    const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const data = apiDataMap[dateStr] || { views: 0, checkouts: 0 };
+        const isToday = dateStr === now.toISOString().split('T')[0];
+        const hasData = data.views > 0 || data.checkouts > 0;
+        const dayOfWeek = new Date(year, month, day).getDay(); // 0 = Sunday, 6 = Saturday
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        return {
+            day,
+            dateStr,
+            data,
+            isToday,
+            hasData,
+            isWeekend,
+        };
     });
 
     const today = now.toISOString().split('T')[0];
@@ -162,36 +181,33 @@ function StatsCalendar({ userId }: { userId: number }) {
                             <div key={`empty-${i}`} />
                         ))}
 
-                        {/* Day cells */}
-                        {Array.from({ length: daysInMonth }).map((_, i) => {
-                            const day     = i + 1;
-                            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                            const data    = dailyMap[dateStr];
-                            const isToday = dateStr === today;
-                            const hasData = !!data;
-
-                            return (
-                                <div
-                                    key={day}
-                                    title={data ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : `No data for ${dateStr}`}
-                                    className={`relative rounded-lg p-1 text-xs cursor-default transition-colors ${
-                                        isToday
-                                            ? 'bg-slate-800 text-white font-bold'
-                                            : hasData
-                                            ? 'bg-green-50 text-green-800'
-                                            : 'text-slate-500'
-                                    }`}
-                                >
-                                    <div>{day}</div>
-                                    {data?.views ? (
-                                        <div className="text-[9px] leading-tight text-blue-500">{data.views}v</div>
-                                    ) : null}
-                                    {data?.checkouts ? (
-                                        <div className="text-[9px] leading-tight text-orange-500">{data.checkouts}c</div>
-                                    ) : null}
-                                </div>
-                            );
-                        })}
+                        {/* Day cells - ALL days including weekends */}
+                        {calendarDays.map(({ day, dateStr, data, isToday, hasData, isWeekend }) => (
+                            <div
+                                key={day}
+                                title={hasData 
+                                    ? `Views: ${data.views}, Checkouts: ${data.checkouts}` 
+                                    : `No activity on ${dateStr}`
+                                }
+                                className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
+                                    isToday
+                                        ? 'bg-slate-800 text-white font-bold'
+                                        : hasData
+                                        ? 'bg-green-50 text-green-800'
+                                        : isWeekend
+                                        ? 'bg-slate-50 text-slate-400'
+                                        : 'text-slate-500'
+                                }`}
+                            >
+                                <div className={isWeekend && !hasData && !isToday ? 'text-slate-400' : ''}>{day}</div>
+                                {data.views > 0 ? (
+                                    <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>
+                                ) : null}
+                                {data.checkouts > 0 ? (
+                                    <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>
+                                ) : null}
+                            </div>
+                        ))}
                     </div>
 
                     {/* Legend */}
