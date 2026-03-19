@@ -148,14 +148,20 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     $views     = (clone $query)->where('type', 'view')->count();
     $checkouts = (clone $query)->where('type', 'checkout')->count();
 
-    // Daily breakdown for calendar (always current month)
+    // Daily breakdown for calendar - use DB::raw in groupBy to match selectRaw
     $daily = DB::table('profile_events')
         ->where('user_id', $user->id)
         ->whereMonth('created_at', now()->month)
         ->whereYear('created_at', now()->year)
         ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
-        ->groupBy('date', 'type')
-        ->get();
+        ->groupBy(DB::raw('DATE(created_at)'), 'type')
+        ->orderBy(DB::raw('DATE(created_at)'))
+        ->get()
+        ->map(function ($item) {
+            // Ensure consistent Y-m-d format
+            $item->date = \Carbon\Carbon::parse($item->date)->format('Y-m-d');
+            return $item;
+        });
 
     return response()->json([
         'views'     => $views,

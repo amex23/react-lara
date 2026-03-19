@@ -91,11 +91,19 @@ function StatsCalendar({ userId }: { userId: number }) {
     const firstDay   = new Date(year, month, 1).getDay();
     const monthName  = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-    // Map daily data - ensure date format matches YYYY-MM-DD from API
+    // Map daily data - normalize date format to YYYY-MM-DD
     const dailyMap: Record<string, { views: number; checkouts: number }> = {};
     stats?.daily?.forEach(e => {
-        // Ensure date is in YYYY-MM-DD format
-        const dateKey = e.date.length === 10 ? e.date : e.date.split('T')[0];
+        // Handle various date formats: "2025-03-20", "2025-03-20T00:00:00.000000Z", "2025-03-20 14:30:00"
+        let dateKey = e.date;
+        if (typeof dateKey === 'string') {
+            if (dateKey.includes('T')) {
+                dateKey = dateKey.split('T')[0];
+            } else if (dateKey.includes(' ')) {
+                dateKey = dateKey.split(' ')[0];
+            }
+        }
+        
         if (!dailyMap[dateKey]) dailyMap[dateKey] = { views: 0, checkouts: 0 };
         if (e.type === 'view')     dailyMap[dateKey].views     += e.count;
         if (e.type === 'checkout') dailyMap[dateKey].checkouts += e.count;
@@ -154,7 +162,7 @@ function StatsCalendar({ userId }: { userId: number }) {
                             <div key={`empty-${i}`} />
                         ))}
 
-                        {/* Day cells - all days including Sat/Sun */}
+                        {/* Day cells */}
                         {Array.from({ length: daysInMonth }).map((_, i) => {
                             const day     = i + 1;
                             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -165,21 +173,21 @@ function StatsCalendar({ userId }: { userId: number }) {
                             return (
                                 <div
                                     key={day}
-                                    title={data ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : ''}
-                                    className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
+                                    title={data ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : `No data for ${dateStr}`}
+                                    className={`relative rounded-lg p-1 text-xs cursor-default transition-colors ${
                                         isToday
                                             ? 'bg-slate-800 text-white font-bold'
                                             : hasData
                                             ? 'bg-green-50 text-green-800'
-                                            : 'text-slate-500 hover:bg-slate-50'
+                                            : 'text-slate-500'
                                     }`}
                                 >
                                     <div>{day}</div>
                                     {data?.views ? (
-                                        <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>
+                                        <div className="text-[9px] leading-tight text-blue-500">{data.views}v</div>
                                     ) : null}
                                     {data?.checkouts ? (
-                                        <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>
+                                        <div className="text-[9px] leading-tight text-orange-500">{data.checkouts}c</div>
                                     ) : null}
                                 </div>
                             );
@@ -396,4 +404,3 @@ export default function Index() {
         </AppLayout>
     );
 }
-
