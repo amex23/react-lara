@@ -115,7 +115,7 @@ function StatsCalendar({ userId }: { userId: number }) {
         const data = apiDataMap[dateStr] || { views: 0, checkouts: 0 };
         const isToday = dateStr === now.toISOString().split('T')[0];
         const hasData = data.views > 0 || data.checkouts > 0;
-        const dayOfWeek = new Date(year, month, day).getDay(); // 0 = Sunday, 6 = Saturday
+        const dayOfWeek = new Date(year, month, day).getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
         return {
@@ -127,8 +127,6 @@ function StatsCalendar({ userId }: { userId: number }) {
             isWeekend,
         };
     });
-
-    const today = now.toISOString().split('T')[0];
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">

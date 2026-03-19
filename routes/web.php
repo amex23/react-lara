@@ -63,12 +63,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Public API — no auth, called by Shopify
 // ─────────────────────────────────────────────
 
+// CORS preflight for all API routes
+Route::options('/api/{any}', function () {
+    return response('', 204)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+})->where('any', '.*');
+
 // Get store profile + images (each with its own checkout URL)
 Route::get('/api/store-profile/{id}', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $fallback = 'https://naturepackaged.myshopify.com/cart';
@@ -86,7 +95,7 @@ Route::get('/api/store-profile/{id}', function ($id) {
         'description' => $user->description,
         'price'       => $user->price,
         'images'      => $images,
-    ]);
+    ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.profile');
 
 // Track profile view
@@ -94,7 +103,8 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $user->increment('profile_views');
@@ -106,7 +116,8 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
         'updated_at' => now(),
     ]);
 
-    return response()->json(['views' => $user->profile_views]);
+    return response()->json(['views' => $user->profile_views])
+        ->header('Access-Control-Allow-Origin', '*');
 });
 
 // Track checkout click
@@ -114,7 +125,8 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $user->increment('profile_checkouts');
@@ -126,7 +138,8 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
         'updated_at' => now(),
     ]);
 
-    return response()->json(['checkouts' => $user->profile_checkouts]);
+    return response()->json(['checkouts' => $user->profile_checkouts])
+        ->header('Access-Control-Allow-Origin', '*');
 });
 
 // Get filtered stats + calendar data
@@ -134,7 +147,8 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $filter = $request->query('filter', 'today');
@@ -168,7 +182,7 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
         'checkouts' => $checkouts,
         'daily'     => $daily,
         'filter'    => $filter,
-    ]);
+    ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.stats');
 
 require __DIR__.'/settings.php';
