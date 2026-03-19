@@ -130,7 +130,6 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
 });
 
 // Get filtered stats + calendar data
-// Update only the stats route in your web.php
 Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
@@ -139,27 +138,17 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     }
 
     $filter = $request->query('filter', 'today');
+
     $query = DB::table('profile_events')->where('user_id', $user->id);
 
-    // FIX: Explicitly handle Sunday start for the "Week" filter
     $query->when($filter === 'today', fn($q) => $q->whereDate('created_at', today()));
-    
-    $query->when($filter === 'week', function($q) {
-        $q->whereBetween('created_at', [
-            now()->startOfWeek(\Carbon\CarbonInterface::SUNDAY), 
-            now()->endOfWeek(\Carbon\CarbonInterface::SATURDAY)
-        ]);
-    });
-
-    $query->when($filter === 'month', function($q) {
-        $q->whereMonth('created_at', now()->month)
-          ->whereYear('created_at', now()->year);
-    });
+    $query->when($filter === 'week',  fn($q) => $q->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]));
+    $query->when($filter === 'month', fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year));
 
     $views     = (clone $query)->where('type', 'view')->count();
     $checkouts = (clone $query)->where('type', 'checkout')->count();
 
-    // Daily breakdown: Grouping by date string from DB
+    // Daily breakdown for calendar (always current month)
     $daily = DB::table('profile_events')
         ->where('user_id', $user->id)
         ->whereMonth('created_at', now()->month)

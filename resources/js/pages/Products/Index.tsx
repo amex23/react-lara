@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { route } from 'ziggy-js';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Megaphone, Plus } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Table,
     TableBody,
@@ -41,7 +41,7 @@ interface PageProps {
 }
 
 interface DailyEvent {
-    date: string; // Expected: YYYY-MM-DD
+    date: string;
     type: 'view' | 'checkout';
     count: number;
 }
@@ -69,58 +69,51 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
     const [filter, setFilter] = useState<'today' | 'week' | 'month'>('today');
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats]   = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // const LARAVEL_API = 'https://react-lara-master-vibaxb.laravel.cloud';
     const LARAVEL_API = 'https://www.shopmyday.store';
 
     useEffect(() => {
         setLoading(true);
         fetch(`${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`)
             .then(r => r.json())
-            .then(data => {
-                setStats(data);
-                setLoading(false);
-            })
+            .then(data => { setStats(data); setLoading(false); })
             .catch(() => setLoading(false));
     }, [filter, userId]);
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    // Build calendar days for current month
+    const now        = new Date();
+    const year       = now.getFullYear();
+    const month      = now.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDay = new Date(year, month, 1).getDay();
-    const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-    
-    // Normalize "today" to YYYY-MM-DD
-    const todayStr = new Date().toISOString().split('T')[0];
+    const firstDay   = new Date(year, month, 1).getDay();
+    const monthName  = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-    // FIX: Normalize database dates to strict YYYY-MM-DD keys
-    const dailyMap = useMemo(() => {
-        const map: Record<string, { views: number; checkouts: number }> = {};
-        if (!stats?.daily) return map;
+    // Map daily data
+    const dailyMap: Record<string, { views: number; checkouts: number }> = {};
+    stats?.daily?.forEach(e => {
+        if (!dailyMap[e.date]) dailyMap[e.date] = { views: 0, checkouts: 0 };
+        if (e.type === 'view')     dailyMap[e.date].views     += e.count;
+        if (e.type === 'checkout') dailyMap[e.date].checkouts += e.count;
+    });
 
-        stats.daily.forEach((e: any) => {
-            // Force the date string from DB into a standardized format
-            const d = new Date(e.date + 'T00:00:00'); 
-            const dateKey = d.toISOString().split('T')[0];
-            
-            if (!map[dateKey]) map[dateKey] = { views: 0, checkouts: 0 };
-            if (e.type === 'view') map[dateKey].views += Number(e.count);
-            if (e.type === 'checkout') map[dateKey].checkouts += Number(e.count);
-        });
-        return map;
-    }, [stats]);
+    const today = now.toISOString().split('T')[0];
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
+
+            {/* Filter tabs */}
             <div className="flex gap-2 mb-4 justify-center">
                 {(['today', 'week', 'month'] as const).map(f => (
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
                         className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            filter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            filter === f
+                                ? 'bg-slate-800 text-white'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         }`}
                     >
                         {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -128,60 +121,70 @@ function StatsCalendar({ userId }: { userId: number }) {
                 ))}
             </div>
 
+            {/* Stats summary */}
             <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.views ?? 0}</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                        {loading ? '—' : stats?.views ?? 0}
+                    </div>
                     <div className="text-xs text-slate-500 mt-0.5">Views</div>
                 </div>
                 <div className="w-px bg-slate-200" />
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.checkouts ?? 0}</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                        {loading ? '—' : stats?.checkouts ?? 0}
+                    </div>
                     <div className="text-xs text-slate-500 mt-0.5">Checkouts</div>
                 </div>
             </div>
 
+            {/* Calendar — only shown on month view */}
             {filter === 'month' && (
                 <div>
                     <h3 className="text-sm font-semibold text-center text-slate-600 mb-3">{monthName}</h3>
                     <div className="grid grid-cols-7 gap-1 text-center">
-                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
                             <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
                         ))}
 
-                        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                        {/* Empty cells for first day offset */}
+                        {Array.from({ length: firstDay }).map((_, i) => (
+                            <div key={`empty-${i}`} />
+                        ))}
 
+                        {/* Day cells */}
                         {Array.from({ length: daysInMonth }).map((_, i) => {
-                            const dayNum = i + 1;
-                            
-                            // FIX: Safe Date generation that matches our dailyMap keys
-                            const cellDate = new Date(year, month, dayNum, 0, 0, 0);
-                            const dateStr = cellDate.toISOString().split('T')[0];
-                            
-                            const data = dailyMap[dateStr];
-                            const isToday = dateStr === todayStr;
-                            const hasData = !!data && (data.views > 0 || data.checkouts > 0);
+                            const day     = i + 1;
+                            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const data    = dailyMap[dateStr];
+                            const isToday = dateStr === today;
+                            const hasData = !!data;
 
                             return (
                                 <div
-                                    key={dayNum}
-                                    className={`relative rounded-lg p-1 text-xs transition-all min-h-[44px] flex flex-col items-center ${
-                                        isToday ? 'bg-slate-800 text-white font-bold' : 
-                                        hasData ? 'bg-green-50 text-green-800 border border-green-100' : 'text-slate-500'
+                                    key={day}
+                                    title={data ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : ''}
+                                    className={`relative rounded-lg p-1 text-xs cursor-default transition-colors ${
+                                        isToday
+                                            ? 'bg-slate-800 text-white font-bold'
+                                            : hasData
+                                            ? 'bg-green-50 text-green-800'
+                                            : 'text-slate-500'
                                     }`}
                                 >
-                                    <span>{dayNum}</span>
-                                    <div className="mt-auto flex flex-col items-center gap-0">
-                                        {data?.views > 0 && (
-                                            <span className="text-[9px] leading-none text-blue-500 font-bold">{data.views}v</span>
-                                        )}
-                                        {data?.checkouts > 0 && (
-                                            <span className="text-[9px] leading-none text-orange-500 font-bold">{data.checkouts}c</span>
-                                        )}
-                                    </div>
+                                    <div>{day}</div>
+                                    {data?.views ? (
+                                        <div className="text-[9px] leading-tight text-blue-500">{data.views}v</div>
+                                    ) : null}
+                                    {data?.checkouts ? (
+                                        <div className="text-[9px] leading-tight text-orange-500">{data.checkouts}c</div>
+                                    ) : null}
                                 </div>
                             );
                         })}
                     </div>
+
+                    {/* Legend */}
                     <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
                         <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
@@ -259,134 +262,134 @@ export default function Index() {
                 )}
 
                 {products.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                        {isAdmin
-                            ? 'No store profiles have been created yet.'
-                            : "You haven't set up your store profile yet."}
+    <div className="text-center py-12 text-muted-foreground border rounded-lg">
+        {isAdmin
+            ? 'No store profiles have been created yet.'
+            : "You haven't set up your store profile yet."}
+    </div>
+) : (
+    <>
+        {/* Mobile card view */}
+        <div className="flex flex-col gap-4 md:hidden">
+            {products.map((product) => (
+                <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
+                    {isAdmin && (
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                            <span>ID: {product.id}</span>
+                            <span>{product.owner_name || `User #${product.user_id}`}</span>
+                        </div>
+                    )}
+
+                    {/* Images row */}
+                    <div className="flex gap-1.5 flex-wrap">
+                        {[1,2,3,4,5,6].map((i) => {
+                            const key = `image${i}_url` as keyof Product;
+                            return product[key] ? (
+                                <img
+                                    key={i}
+                                    src={product[key] as string}
+                                    alt={`Image ${i}`}
+                                    className="w-10 h-10 object-cover rounded border shadow-sm"
+                                />
+                            ) : null;
+                        })}
+                        {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                                no img
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <>
-                        {/* Mobile card view */}
-                        <div className="flex flex-col gap-4 md:hidden">
-                            {products.map((product) => (
-                                <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
-                                    {isAdmin && (
-                                        <div className="flex justify-between text-sm text-muted-foreground">
-                                            <span>ID: {product.id}</span>
-                                            <span>{product.owner_name || `User #${product.user_id}`}</span>
-                                        </div>
+
+                    <div className="space-y-1">
+                        <p className="font-semibold text-sm">{product.name}</p>
+                        {product.price != null && (
+                            <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>
+                        )}
+                        {product.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                        )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                        {product.subscription ? (
+                            <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
+                        ) : (
+                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
+                        )}
+                        <div className="flex gap-2">
+                            <a href={`${editUrlBase}/${product.id}/edit`}>
+                                <Button size="sm" variant="outline">Edit</Button>
+                            </a>
+                            {isAdmin && (
+                                <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+
+        {/* Desktop table view */}
+        <div className="hidden md:block overflow-x-auto rounded-lg border">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        {isAdmin && <TableHead className="w-16">ID</TableHead>}
+                        {isAdmin && <TableHead className="w-44">Owner</TableHead>}
+                        <TableHead>My Images</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right w-36">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {products.map((product) => (
+                        <TableRow key={product.id}>
+                            {isAdmin && <TableCell className="font-medium">{product.id}</TableCell>}
+                            {isAdmin && (
+                                <TableCell className="text-sm">
+                                    {product.owner_name || `User #${product.user_id}`}
+                                </TableCell>
+                            )}
+                            <TableCell>
+                                <div className="flex gap-1.5 flex-wrap max-w-[140px]">
+                                    {[1,2,3,4,5,6].map((i) => {
+                                        const key = `image${i}_url` as keyof Product;
+                                        return product[key] ? (
+                                            <img key={i} src={product[key] as string} alt={`Image ${i}`}
+                                                className="w-10 h-10 object-cover rounded border shadow-sm" />
+                                        ) : null;
+                                    })}
+                                    {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
                                     )}
-
-                                    {/* Images row */}
-                                    <div className="flex gap-1.5 flex-wrap">
-                                        {[1, 2, 3, 4, 5, 6].map((i) => {
-                                            const key = `image${i}_url` as keyof Product;
-                                            return product[key] ? (
-                                                <img
-                                                    key={i}
-                                                    src={product[key] as string}
-                                                    alt={`Image ${i}`}
-                                                    className="w-10 h-10 object-cover rounded border shadow-sm"
-                                                />
-                                            ) : null;
-                                        })}
-                                        {![1, 2, 3, 4, 5, 6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                                                no img
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <p className="font-semibold text-sm">{product.name}</p>
-                                        {product.price != null && (
-                                            <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>
-                                        )}
-                                        {product.description && (
-                                            <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-1">
-                                        {product.subscription ? (
-                                            <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
-                                        ) : (
-                                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
-                                        )}
-                                        <div className="flex gap-2">
-                                            <a href={`${editUrlBase}/${product.id}/edit`}>
-                                                <Button size="sm" variant="outline">Edit</Button>
-                                            </a>
-                                            {isAdmin && (
-                                                <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />
-                                            )}
-                                        </div>
-                                    </div>
                                 </div>
-                            ))}
-                        </div>
-
-                        {/* Desktop table view */}
-                        <div className="hidden md:block overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        {isAdmin && <TableHead className="w-16">ID</TableHead>}
-                                        {isAdmin && <TableHead className="w-44">Owner</TableHead>}
-                                        <TableHead>My Images</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Price</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right w-36">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {products.map((product) => (
-                                        <TableRow key={product.id}>
-                                            {isAdmin && <TableCell className="font-medium">{product.id}</TableCell>}
-                                            {isAdmin && (
-                                                <TableCell className="text-sm">
-                                                    {product.owner_name || `User #${product.user_id}`}
-                                                </TableCell>
-                                            )}
-                                            <TableCell>
-                                                <div className="flex gap-1.5 flex-wrap max-w-[140px]">
-                                                    {[1, 2, 3, 4, 5, 6].map((i) => {
-                                                        const key = `image${i}_url` as keyof Product;
-                                                        return product[key] ? (
-                                                            <img key={i} src={product[key] as string} alt={`Image ${i}`}
-                                                                className="w-10 h-10 object-cover rounded border shadow-sm" />
-                                                        ) : null;
-                                                    })}
-                                                    {![1, 2, 3, 4, 5, 6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="font-medium">{product.name}</TableCell>
-                                            <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
-                                            <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
-                                            <TableCell>
-                                                {product.subscription ? (
-                                                    <span className="text-green-600 font-medium">✓ Connected</span>
-                                                ) : (
-                                                    <span className="text-slate-400">✗ Not Connected</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                <a href={`${editUrlBase}/${product.id}/edit`}>
-                                                    <Button size="sm" variant="outline">Edit</Button>
-                                                </a>
-                                                {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </>
-                )}
+                            </TableCell>
+                            <TableCell className="font-medium">{product.name}</TableCell>
+                            <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
+                            <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
+                            <TableCell>
+                                {product.subscription ? (
+                                    <span className="text-green-600 font-medium">✓ Connected</span>
+                                ) : (
+                                    <span className="text-slate-400">✗ Not Connected</span>
+                                )}
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                                <a href={`${editUrlBase}/${product.id}/edit`}>
+                                    <Button size="sm" variant="outline">Edit</Button>
+                                </a>
+                                {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
+    </>
+)}
             </div>
         </AppLayout>
     );
