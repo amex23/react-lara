@@ -63,12 +63,21 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Public API — no auth, called by Shopify
 // ─────────────────────────────────────────────
 
+// CORS preflight for all API routes
+Route::options('/api/{any}', function () {
+    return response('', 204)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
+})->where('any', '.*');
+
 // Get store profile + images (each with its own checkout URL)
 Route::get('/api/store-profile/{id}', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $fallback = 'https://naturepackaged.myshopify.com/cart';
@@ -86,7 +95,7 @@ Route::get('/api/store-profile/{id}', function ($id) {
         'description' => $user->description,
         'price'       => $user->price,
         'images'      => $images,
-    ]);
+    ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.profile');
 
 // Track profile view
@@ -94,7 +103,8 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $user->increment('profile_views');
@@ -106,7 +116,8 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
         'updated_at' => now(),
     ]);
 
-    return response()->json(['views' => $user->profile_views]);
+    return response()->json(['views' => $user->profile_views])
+        ->header('Access-Control-Allow-Origin', '*');
 });
 
 // Track checkout click
@@ -114,7 +125,8 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $user->increment('profile_checkouts');
@@ -126,7 +138,8 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
         'updated_at' => now(),
     ]);
 
-    return response()->json(['checkouts' => $user->profile_checkouts]);
+    return response()->json(['checkouts' => $user->profile_checkouts])
+        ->header('Access-Control-Allow-Origin', '*');
 });
 
 // Get filtered stats + calendar data
@@ -134,35 +147,69 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
-        return response()->json(['error' => 'Store not connected.'], 403);
+        return response()->json(['error' => 'Store not connected.'], 403)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
     $filter = $request->query('filter', 'today');
 
     $query = DB::table('profile_events')->where('user_id', $user->id);
 
-    $query->when($filter === 'today', fn($q) => $q->whereDate('created_at', today()));
-    $query->when($filter === 'week',  fn($q) => $q->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]));
-    $query->when($filter === 'month', fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year));
+    if ($filter === 'today') {
+        $query->whereDate('created_at', today());
+    } elseif ($filter === 'week') {
+        $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+    } elseif ($filter === 'month') {
+        $query->whereMonth('created_at', now()->month)
+              ->whereYear('created_at', now()->year);
+    } elseif ($filter === 'range') {
+        $from = $request->query('from'); // e.g. "2024-01-15"
+        $to   = $request->query('to');   // e.g. "2025-03-22"
+
+        if ($from && $to) {
+            $query->whereDate('created_at', '>=', $from)
+                  ->whereDate('created_at', '<=', $to);
+        }
+    }
 
     $views     = (clone $query)->where('type', 'view')->count();
     $checkouts = (clone $query)->where('type', 'checkout')->count();
 
-    // Daily breakdown for calendar (always current month)
-    $daily = DB::table('profile_events')
-        ->where('user_id', $user->id)
-        ->whereMonth('created_at', now()->month)
-        ->whereYear('created_at', now()->year)
+    // Daily breakdown for calendar
+    // For 'range', use the from/to window; for all others, use current month
+    $dailyQuery = DB::table('profile_events')->where('user_id', $user->id);
+
+    if ($filter === 'range') {
+        $from = $request->query('from');
+        $to   = $request->query('to');
+        if ($from && $to) {
+            $dailyQuery->whereDate('created_at', '>=', $from)
+                       ->whereDate('created_at', '<=', $to);
+        }
+    } else {
+        // Always fetch current month for daily breakdown (used by month calendar)
+        $dailyQuery->whereMonth('created_at', now()->month)
+                   ->whereYear('created_at', now()->year);
+    }
+
+    $daily = $dailyQuery
         ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
-        ->groupBy('date', 'type')
-        ->get();
+        ->groupBy(DB::raw('DATE(created_at)'), 'type')
+        ->orderBy(DB::raw('DATE(created_at)'))
+        ->get()
+        ->map(function ($item) {
+            $item->date = \Carbon\Carbon::parse($item->date)->format('Y-m-d');
+            return $item;
+        });
 
     return response()->json([
         'views'     => $views,
         'checkouts' => $checkouts,
         'daily'     => $daily,
         'filter'    => $filter,
-    ]);
+    ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.stats');
+
+
 
 require __DIR__.'/settings.php';

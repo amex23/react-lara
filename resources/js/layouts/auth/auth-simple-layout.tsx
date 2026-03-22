@@ -20,7 +20,7 @@ export default function AuthSimpleLayout({
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col items-center gap-4">
                         
-                        <div
+                        <a href='/'
                             className="relative h-[120px] lg:h-[230px] -mb-px w-[50%] shrink-0 overflow-hidden rounded-lg lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px]"
                             style={{
                                 backgroundImage: `url('/images/new-logo.png')`,
@@ -29,7 +29,7 @@ export default function AuthSimpleLayout({
                             }}
                         >
                         
-                        </div>
+                        </a>
 
                         <div className="space-y-2 text-center mt-7">
                             <h1 className="text-xl font-medium">{title}</h1>
