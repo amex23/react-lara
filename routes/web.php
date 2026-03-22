@@ -80,11 +80,14 @@ Route::get('/api/store-profile/{id}', function ($id) {
             ->header('Access-Control-Allow-Origin', '*');
     }
 
-    $fallback = 'https://naturepackaged.myshopify.com/cart';
+    // Priority: per-user default → global env fallback
+    $fallback = $user->default_checkout_url
+        ?: env('SHOPIFY_FALLBACK_URL', 'https://naturepackaged.myshopify.com/cart');
 
     $images = collect([1, 2, 3, 4, 5, 6])
         ->map(fn($i) => $user->{"image$i"} ? [
             'url'          => Storage::url($user->{"image$i"}),
+            // Priority: per-image checkout URL → user's default → global fallback
             'checkout_url' => $user->{"checkout_url$i"} ?: $fallback,
         ] : null)
         ->filter()
@@ -163,8 +166,8 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
         $query->whereMonth('created_at', now()->month)
               ->whereYear('created_at', now()->year);
     } elseif ($filter === 'range') {
-        $from = $request->query('from'); // e.g. "2024-01-15"
-        $to   = $request->query('to');   // e.g. "2025-03-22"
+        $from = $request->query('from');
+        $to   = $request->query('to');
 
         if ($from && $to) {
             $query->whereDate('created_at', '>=', $from)
@@ -176,7 +179,6 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     $checkouts = (clone $query)->where('type', 'checkout')->count();
 
     // Daily breakdown for calendar
-    // For 'range', use the from/to window; for all others, use current month
     $dailyQuery = DB::table('profile_events')->where('user_id', $user->id);
 
     if ($filter === 'range') {
@@ -187,7 +189,6 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
                        ->whereDate('created_at', '<=', $to);
         }
     } else {
-        // Always fetch current month for daily breakdown (used by month calendar)
         $dailyQuery->whereMonth('created_at', now()->month)
                    ->whereYear('created_at', now()->year);
     }
