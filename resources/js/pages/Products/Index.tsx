@@ -68,22 +68,42 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
-    const [filter, setFilter] = useState<'today' | 'week' | 'month'>('today');
+    const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'range'>('today');
     const [stats, setStats]   = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // const LARAVEL_API = 'https://react-lara-master-vibaxb.laravel.cloud';
+    // Range state
+    const todayStr = new Date().toISOString().split('T')[0];
+    // Default: from 30 days ago to today
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+    const [rangeFrom, setRangeFrom] = useState<string>(thirtyDaysAgoStr);
+    const [rangeTo, setRangeTo]     = useState<string>(todayStr);
+    // Track whether the user has applied the range (so we don't auto-fetch on every keystroke)
+    const [appliedFrom, setAppliedFrom] = useState<string>(thirtyDaysAgoStr);
+    const [appliedTo, setAppliedTo]     = useState<string>(todayStr);
+
     const LARAVEL_API = 'https://www.shopmyday.store';
 
     useEffect(() => {
         setLoading(true);
-        fetch(`${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`)
+
+        let url: string;
+        if (filter === 'range') {
+            url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${appliedFrom}&to=${appliedTo}`;
+        } else {
+            url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`;
+        }
+
+        fetch(url)
             .then(r => r.json())
             .then(data => { setStats(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [filter, userId]);
+    }, [filter, userId, appliedFrom, appliedTo]);
 
-    // Build calendar days for current month
+    // Build calendar days for current month (used in 'month' view)
     const now        = new Date();
     const year       = now.getFullYear();
     const month      = now.getMonth();
@@ -102,13 +122,12 @@ function StatsCalendar({ userId }: { userId: number }) {
                 dateKey = dateKey.split(' ')[0];
             }
         }
-        
         if (!apiDataMap[dateKey]) apiDataMap[dateKey] = { views: 0, checkouts: 0 };
         if (e.type === 'view')     apiDataMap[dateKey].views     += e.count;
         if (e.type === 'checkout') apiDataMap[dateKey].checkouts += e.count;
     });
 
-    // Generate all days of the month with data (or zeros)
+    // Generate all days of the current month with data
     const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
         const day = i + 1;
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -117,23 +136,67 @@ function StatsCalendar({ userId }: { userId: number }) {
         const hasData = data.views > 0 || data.checkouts > 0;
         const dayOfWeek = new Date(year, month, day).getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-        return {
-            day,
-            dateStr,
-            data,
-            isToday,
-            hasData,
-            isWeekend,
-        };
+        return { day, dateStr, data, isToday, hasData, isWeekend };
     });
+
+    // Build range calendar: all dates between appliedFrom and appliedTo
+    const buildRangeDays = () => {
+        const from = new Date(appliedFrom + 'T00:00:00');
+        const to   = new Date(appliedTo   + 'T00:00:00');
+        if (isNaN(from.getTime()) || isNaN(to.getTime()) || from > to) return [];
+
+        const days: Array<{
+            day: number;
+            dateStr: string;
+            data: { views: number; checkouts: number };
+            isToday: boolean;
+            hasData: boolean;
+            isWeekend: boolean;
+            monthLabel?: string; // shown when month changes
+        }> = [];
+
+        let cursor = new Date(from);
+        let prevMonth = -1;
+
+        while (cursor <= to) {
+            const dateStr = cursor.toISOString().split('T')[0];
+            const data    = apiDataMap[dateStr] || { views: 0, checkouts: 0 };
+            const isToday = dateStr === todayStr;
+            const hasData = data.views > 0 || data.checkouts > 0;
+            const dow     = cursor.getDay();
+            const isWeekend = dow === 0 || dow === 6;
+            const curMonth  = cursor.getMonth();
+
+            days.push({
+                day: cursor.getDate(),
+                dateStr,
+                data,
+                isToday,
+                hasData,
+                isWeekend,
+                monthLabel: curMonth !== prevMonth
+                    ? cursor.toLocaleString('default', { month: 'long', year: 'numeric' })
+                    : undefined,
+            });
+            prevMonth = curMonth;
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return days;
+    };
+
+    const rangeDays = filter === 'range' ? buildRangeDays() : [];
+
+    const handleApplyRange = () => {
+        setAppliedFrom(rangeFrom);
+        setAppliedTo(rangeTo);
+    };
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
 
             {/* Filter tabs */}
-            <div className="flex gap-2 mb-4 justify-center">
-                {(['today', 'week', 'month'] as const).map(f => (
+            <div className="flex gap-2 mb-4 justify-center flex-wrap">
+                {(['today', 'week', 'month', 'range'] as const).map(f => (
                     <button
                         key={f}
                         onClick={() => setFilter(f)}
@@ -147,6 +210,49 @@ function StatsCalendar({ userId }: { userId: number }) {
                     </button>
                 ))}
             </div>
+
+            {/* Range date picker — only shown on range view */}
+            {filter === 'range' && (
+                <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <p className="text-xs text-slate-500 font-medium mb-2 text-center">Select Date Range</p>
+                    <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
+                        <div className="flex flex-col gap-0.5">
+                            <label className="text-[11px] text-slate-400 font-medium ml-1">From</label>
+                            <input
+                                type="date"
+                                value={rangeFrom}
+                                max={rangeTo}
+                                onChange={e => setRangeFrom(e.target.value)}
+                                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            />
+                        </div>
+                        <span className="text-slate-400 text-sm mt-3 hidden sm:block">→</span>
+                        <div className="flex flex-col gap-0.5">
+                            <label className="text-[11px] text-slate-400 font-medium ml-1">To</label>
+                            <input
+                                type="date"
+                                value={rangeTo}
+                                min={rangeFrom}
+                                max={todayStr}
+                                onChange={e => setRangeTo(e.target.value)}
+                                className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400"
+                            />
+                        </div>
+                        <button
+                            onClick={handleApplyRange}
+                            className="mt-3 sm:mt-0 px-4 py-2 bg-slate-800 text-white text-sm rounded-lg font-medium hover:bg-slate-700 transition-colors"
+                        >
+                            Apply
+                        </button>
+                    </div>
+                    {/* Show applied range label */}
+                    {(appliedFrom && appliedTo) && (
+                        <p className="text-[11px] text-slate-400 text-center mt-2">
+                            Showing: <span className="font-medium text-slate-600">{appliedFrom}</span> — <span className="font-medium text-slate-600">{appliedTo}</span>
+                        </p>
+                    )}
+                </div>
+            )}
 
             {/* Stats summary */}
             <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
@@ -174,17 +280,15 @@ function StatsCalendar({ userId }: { userId: number }) {
                             <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
                         ))}
 
-                        {/* Empty cells for first day offset */}
                         {Array.from({ length: firstDay }).map((_, i) => (
                             <div key={`empty-${i}`} />
                         ))}
 
-                        {/* Day cells - ALL days including weekends */}
                         {calendarDays.map(({ day, dateStr, data, isToday, hasData, isWeekend }) => (
                             <div
                                 key={day}
-                                title={hasData 
-                                    ? `Views: ${data.views}, Checkouts: ${data.checkouts}` 
+                                title={hasData
+                                    ? `Views: ${data.views}, Checkouts: ${data.checkouts}`
                                     : `No activity on ${dateStr}`
                                 }
                                 className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
@@ -208,11 +312,93 @@ function StatsCalendar({ userId }: { userId: number }) {
                         ))}
                     </div>
 
-                    {/* Legend */}
                     <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
                         <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
                         <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
                     </div>
+                </div>
+            )}
+
+            {/* Range calendar grid — shown on range view */}
+            {filter === 'range' && !loading && rangeDays.length > 0 && (
+                <div>
+                    {/* Group by month */}
+                    {(() => {
+                        // Split rangeDays into month groups
+                        const groups: Array<{ label: string; firstDow: number; days: typeof rangeDays }> = [];
+                        let currentGroup: (typeof groups)[0] | null = null;
+
+                        rangeDays.forEach(d => {
+                            if (d.monthLabel) {
+                                const firstDate = new Date(d.dateStr + 'T00:00:00');
+                                currentGroup = { label: d.monthLabel, firstDow: firstDate.getDay(), days: [] };
+                                groups.push(currentGroup);
+                            }
+                            currentGroup?.days.push(d);
+                        });
+
+                        return groups.map(group => (
+                            <div key={group.label} className="mb-5">
+                                <h3 className="text-sm font-semibold text-center text-slate-600 mb-3">{group.label}</h3>
+                                <div className="grid grid-cols-7 gap-1 text-center">
+                                    {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                                        <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
+                                    ))}
+
+                                    {/* Offset for first day of this month (only for first group, others start mid-month) */}
+                                    {Array.from({ length: group.firstDow }).map((_, i) => (
+                                        <div key={`offset-${i}`} />
+                                    ))}
+
+                                    {group.days.map(({ day, dateStr, data, isToday, hasData, isWeekend }) => (
+                                        <div
+                                            key={dateStr}
+                                            title={hasData
+                                                ? `Views: ${data.views}, Checkouts: ${data.checkouts}`
+                                                : `No activity on ${dateStr}`
+                                            }
+                                            className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
+                                                isToday
+                                                    ? 'bg-slate-800 text-white font-bold'
+                                                    : hasData
+                                                    ? 'bg-green-50 text-green-800'
+                                                    : isWeekend
+                                                    ? 'bg-slate-50 text-slate-400'
+                                                    : 'text-slate-500'
+                                            }`}
+                                        >
+                                            <div>{day}</div>
+                                            {data.views > 0 ? (
+                                                <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>
+                                            ) : null}
+                                            {data.checkouts > 0 ? (
+                                                <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>
+                                            ) : null}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ));
+                    })()}
+
+                    <div className="flex gap-4 justify-center mt-1 text-xs text-slate-500">
+                        <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
+                        <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Empty state for range */}
+            {filter === 'range' && !loading && rangeDays.length === 0 && (
+                <div className="text-center py-6 text-sm text-slate-400">
+                    Select a valid date range and press Apply.
+                </div>
+            )}
+
+            {/* Loading state */}
+            {loading && (
+                <div className="text-center py-4 text-sm text-slate-400 animate-pulse">
+                    Loading...
                 </div>
             )}
         </div>

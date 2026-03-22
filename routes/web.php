@@ -155,24 +155,49 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
 
     $query = DB::table('profile_events')->where('user_id', $user->id);
 
-    $query->when($filter === 'today', fn($q) => $q->whereDate('created_at', today()));
-    $query->when($filter === 'week',  fn($q) => $q->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]));
-    $query->when($filter === 'month', fn($q) => $q->whereMonth('created_at', now()->month)->whereYear('created_at', now()->year));
+    if ($filter === 'today') {
+        $query->whereDate('created_at', today());
+    } elseif ($filter === 'week') {
+        $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+    } elseif ($filter === 'month') {
+        $query->whereMonth('created_at', now()->month)
+              ->whereYear('created_at', now()->year);
+    } elseif ($filter === 'range') {
+        $from = $request->query('from'); // e.g. "2024-01-15"
+        $to   = $request->query('to');   // e.g. "2025-03-22"
+
+        if ($from && $to) {
+            $query->whereDate('created_at', '>=', $from)
+                  ->whereDate('created_at', '<=', $to);
+        }
+    }
 
     $views     = (clone $query)->where('type', 'view')->count();
     $checkouts = (clone $query)->where('type', 'checkout')->count();
 
-    // Daily breakdown for calendar - use DB::raw in groupBy to match selectRaw
-    $daily = DB::table('profile_events')
-        ->where('user_id', $user->id)
-        ->whereMonth('created_at', now()->month)
-        ->whereYear('created_at', now()->year)
+    // Daily breakdown for calendar
+    // For 'range', use the from/to window; for all others, use current month
+    $dailyQuery = DB::table('profile_events')->where('user_id', $user->id);
+
+    if ($filter === 'range') {
+        $from = $request->query('from');
+        $to   = $request->query('to');
+        if ($from && $to) {
+            $dailyQuery->whereDate('created_at', '>=', $from)
+                       ->whereDate('created_at', '<=', $to);
+        }
+    } else {
+        // Always fetch current month for daily breakdown (used by month calendar)
+        $dailyQuery->whereMonth('created_at', now()->month)
+                   ->whereYear('created_at', now()->year);
+    }
+
+    $daily = $dailyQuery
         ->selectRaw('DATE(created_at) as date, type, COUNT(*) as count')
         ->groupBy(DB::raw('DATE(created_at)'), 'type')
         ->orderBy(DB::raw('DATE(created_at)'))
         ->get()
         ->map(function ($item) {
-            // Ensure consistent Y-m-d format
             $item->date = \Carbon\Carbon::parse($item->date)->format('Y-m-d');
             return $item;
         });
