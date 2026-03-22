@@ -29,23 +29,24 @@ export default function Edit() {
     const isOwnProfile = targetUser?.id === authUser?.id;
 
     const { data, setData, post, processing, errors } = useForm({
-        _method:       'PUT',
-        name:          product.name        ?? '',
-        description:   product.description ?? '',
-        price:         product.price       ?? '',
-        subscription:  !!product.subscription,
+        _method:               'PUT',
+        name:                  product.name                  ?? '',
+        description:           product.description           ?? '',
+        price:                 product.price                 ?? '',
+        subscription:          !!product.subscription,
         image1: null as File | null,
         image2: null as File | null,
         image3: null as File | null,
         image4: null as File | null,
         image5: null as File | null,
         image6: null as File | null,
-        checkout_url1: product.checkout_url1 ?? '',
-        checkout_url2: product.checkout_url2 ?? '',
-        checkout_url3: product.checkout_url3 ?? '',
-        checkout_url4: product.checkout_url4 ?? '',
-        checkout_url5: product.checkout_url5 ?? '',
-        checkout_url6: product.checkout_url6 ?? '',
+        checkout_url1:         product.checkout_url1         ?? '',
+        checkout_url2:         product.checkout_url2         ?? '',
+        checkout_url3:         product.checkout_url3         ?? '',
+        checkout_url4:         product.checkout_url4         ?? '',
+        checkout_url5:         product.checkout_url5         ?? '',
+        checkout_url6:         product.checkout_url6         ?? '',
+        default_checkout_url:  product.default_checkout_url  ?? '',
     });
 
     const basePath = isAdmin ? '/products' : '/dashboard';
@@ -139,6 +140,24 @@ export default function Edit() {
                             onChange={(e) => setData('description', e.target.value)}
                             rows={5}
                         />
+                    </div>
+
+                    {/* Default Checkout URL — visible to all users */}
+                    <div className="space-y-2">
+                        <Label htmlFor="default_checkout_url">Default Checkout URL</Label>
+                        <Input
+                            id="default_checkout_url"
+                            type="url"
+                            placeholder="https://yourstore.myshopify.com/cart"
+                            value={data.default_checkout_url}
+                            onChange={(e) => setData('default_checkout_url', e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Used as fallback when an image doesn't have its own checkout URL.
+                        </p>
+                        {errors.default_checkout_url && (
+                            <p className="text-xs text-red-500">{errors.default_checkout_url}</p>
+                        )}
                     </div>
 
                     {/* Price — admin only */}
@@ -247,7 +266,7 @@ export default function Edit() {
                         </div>
                     </div>
 
-                    {/* Action buttons — stacked on mobile */}
+                    {/* Action buttons */}
                     <div className="pt-4 flex flex-col sm:flex-row gap-3">
                         <Button type="submit" disabled={processing} className="w-full sm:w-auto">
                             {processing ? 'Saving…' : 'Save Changes'}
