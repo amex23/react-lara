@@ -9,6 +9,7 @@ use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AdminRegisterController;
+use App\Http\Controllers\ContactController;
 use App\Models\User;
 
 // Force Fortify to redirect to /dashboard after login
@@ -210,6 +211,9 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
         'filter'    => $filter,
     ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.stats');
+
+Route::get('/contact-us', [ContactController::class, 'index'])->name('contact-us');
+Route::post('/contact-us', [ContactController::class, 'send'])->name('contact-us.send');
 
 
 
