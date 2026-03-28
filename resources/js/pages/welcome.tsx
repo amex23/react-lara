@@ -212,8 +212,9 @@ export default function Welcome({
                           <div className="mt-3 flex flex-row gap-3 md:mt-0 block text-center">
                             <span className='hidden md:block'>ⓒ Copyright 2026 |</span> <a href="/contact-us">Contact Us</a> 
                             <span className='hidden md:block'>| &nbsp; Made with ❤️ </span>
-                            <span className='block md:hidden'>ⓒ Copyright 2026</span>
+                            <span className='block md:hidden'>&nbsp; Made with ❤️</span>
                           </div>  
+                          <span className='block md:hidden'>ⓒ Copyright 2026</span>
                  
                     
                 </div>
