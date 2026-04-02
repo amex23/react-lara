@@ -222,5 +222,21 @@ Route::middleware('auth')->get('/api/visitor-logs', function () {
     return VisitorLog::latest()->limit(100)->get();
 });
 
+Route::post('/api/visitor-location', function (Request $request) {
+    $log = \App\Models\VisitorLog::where('ip', $request->ip())
+        ->latest()
+        ->first();
+
+    if ($log) {
+        $log->update([
+            'precise_lat'      => $request->input('lat'),
+            'precise_lon'      => $request->input('lon'),
+            'precise_accuracy' => $request->input('accuracy'),
+        ]);
+    }
+
+    return response()->json(['ok' => true]);
+});
+
 
 require __DIR__.'/settings.php';

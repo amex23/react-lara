@@ -63,6 +63,9 @@ interface VisitorEntry {
     lon: number | null;
     timezone: string | null;
     url: string | null;
+    precise_lat: number | null;
+    precise_lon: number | null;
+    precise_accuracy: number | null;
     created_at: string;
 }
 
@@ -329,6 +332,18 @@ function VisitorLog() {
                                         {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
                                     </div>
                                 )}
+                                {log.precise_lat && log.precise_lon ? (
+                                    <a
+                                        href={`https://www.google.com/maps?q=${log.precise_lat},${log.precise_lon}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-xs text-green-600 hover:underline"
+                                    >
+                                        <MapPin className="w-3 h-3 shrink-0" />
+                                        Precise: {log.precise_lat.toFixed(4)}, {log.precise_lon.toFixed(4)}
+                                        {log.precise_accuracy && <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>}
+                                    </a>
+                                ) : null}
                                 <div className="flex items-center gap-1 text-xs text-slate-500">
                                     <Wifi className="w-3 h-3 text-slate-400 shrink-0" />
                                     {log.isp || '—'}
@@ -352,7 +367,8 @@ function VisitorLog() {
                             <thead>
                                 <tr className="border-b bg-slate-50 text-slate-500">
                                     <th className="text-left px-4 py-2 font-medium">IP</th>
-                                    <th className="text-left px-4 py-2 font-medium">Location</th>
+                                    <th className="text-left px-4 py-2 font-medium">IP Location</th>
+                                    <th className="text-left px-4 py-2 font-medium">Precise Location</th>
                                     <th className="text-left px-4 py-2 font-medium">ISP</th>
                                     <th className="text-left px-4 py-2 font-medium">Timezone</th>
                                     <th className="text-left px-4 py-2 font-medium">Page</th>
@@ -379,6 +395,24 @@ function VisitorLog() {
                                                     <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                                                     {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
                                                 </div>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            {log.precise_lat && log.precise_lon ? (
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${log.precise_lat},${log.precise_lon}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1 text-green-600 hover:underline"
+                                                >
+                                                    <MapPin className="w-3 h-3 shrink-0" />
+                                                    {log.precise_lat.toFixed(4)}, {log.precise_lon.toFixed(4)}
+                                                    {log.precise_accuracy && (
+                                                        <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>
+                                                    )}
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-400">—</span>
                                             )}
                                         </td>
                                         <td className="px-4 py-2">
