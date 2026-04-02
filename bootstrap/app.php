@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => AdminMiddleware::class,
         ]);
+
+        $middleware->trustProxies(at: '*'); // already there
+        $middleware->append(\App\Http\Middleware\LogVisitor::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

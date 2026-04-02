@@ -11,6 +11,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\ContactController;
 use App\Models\User;
+use App\Models\VisitorLog;
+
 
 // Force Fortify to redirect to /dashboard after login
 Fortify::redirects('login', '/dashboard');
@@ -214,6 +216,11 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
 
 Route::get('/contact-us', [ContactController::class, 'index'])->name('contact-us');
 Route::post('/contact-us', [ContactController::class, 'send'])->name('contact-us.send');
+
+Route::middleware('auth')->get('/api/visitor-logs', function () {
+    abort_unless(auth()->user()->user_type === 'admin', 403);
+    return VisitorLog::latest()->limit(100)->get();
+});
 
 
 require __DIR__.'/settings.php';
