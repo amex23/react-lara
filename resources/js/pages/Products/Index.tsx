@@ -251,10 +251,22 @@ function VisitorLog() {
                                         {new Date(log.created_at).toLocaleString()}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-1 text-xs text-slate-600">
-                                    <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                                    {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
-                                </div>
+                                {log.lat && log.lon ? (
+                                    <a
+                                        href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                                    >
+                                        <MapPin className="w-3 h-3 shrink-0" />
+                                        {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
+                                    </a>
+                                ) : (
+                                    <div className="flex items-center gap-1 text-xs text-slate-600">
+                                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                        {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-1 text-xs text-slate-500">
                                     <Wifi className="w-3 h-3 text-slate-400 shrink-0" />
                                     {log.isp || '—'}
@@ -290,10 +302,22 @@ function VisitorLog() {
                                     <tr key={log.id} className="border-b hover:bg-slate-50 transition-colors">
                                         <td className="px-4 py-2 font-mono text-slate-700">{log.ip}</td>
                                         <td className="px-4 py-2">
-                                            <div className="flex items-center gap-1 text-slate-600">
-                                                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                                                {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
-                                            </div>
+                                            {log.lat && log.lon ? (
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1 text-blue-600 hover:underline"
+                                                >
+                                                    <MapPin className="w-3 h-3 shrink-0" />
+                                                    {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
+                                                </a>
+                                            ) : (
+                                                <div className="flex items-center gap-1 text-slate-600">
+                                                    <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                                                    {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-4 py-2">
                                             <div className="flex items-center gap-1 text-slate-500">
@@ -526,4 +550,3 @@ export default function Index() {
         </AppLayout>
     );
 }
-
