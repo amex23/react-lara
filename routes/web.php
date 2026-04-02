@@ -185,47 +185,4 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.stats');
 
-
-// TEMPORARY TEST ROUTE - Remove after testing
-Route::get('/test-weekend/{userId}', function ($userId) {
-    $user = User::findOrFail($userId);
-    
-    if (!$user->subscription) {
-        return 'User not connected';
-    }
-
-    // Simulate view on March 21, 2026 (Saturday)
-    DB::table('profile_events')->insert([
-        'user_id'    => $user->id,
-        'type'       => 'view',
-        'created_at' => '2026-03-21 14:30:00', // Saturday
-        'updated_at' => '2026-03-21 14:30:00',
-    ]);
-    
-    // Simulate checkout on March 21, 2026 (Saturday)
-    DB::table('profile_events')->insert([
-        'user_id'    => $user->id,
-        'type'       => 'checkout',
-        'created_at' => '2026-03-21 15:45:00', // Saturday
-        'updated_at' => '2026-03-21 15:45:00',
-    ]);
-    
-    // Simulate view on March 22, 2026 (Sunday)
-    DB::table('profile_events')->insert([
-        'user_id'    => $user->id,
-        'type'       => 'view',
-        'created_at' => '2026-03-22 10:15:00', // Sunday
-        'updated_at' => '2026-03-22 10:15:00',
-    ]);
-
-    $user->increment('profile_views', 2);
-    $user->increment('profile_checkouts', 1);
-
-    return response()->json([
-        'message' => 'Weekend test data added for March 21-22, 2026',
-        'user_id' => $userId,
-        'dates_added' => ['2026-03-21', '2026-03-22'],
-    ]);
-});
-
 require __DIR__.'/settings.php';
