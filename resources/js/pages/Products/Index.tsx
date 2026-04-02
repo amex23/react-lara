@@ -340,7 +340,7 @@ function VisitorLog() {
                                         className="flex items-center gap-1 text-xs text-green-600 hover:underline"
                                     >
                                         <MapPin className="w-3 h-3 shrink-0" />
-                                        Precise: {log.precise_lat.toFixed(4)}, {log.precise_lon.toFixed(4)}
+                                        Precise: {parseFloat(String(log.precise_lat)).toFixed(4)}, {parseFloat(String(log.precise_lon)).toFixed(4)}
                                         {log.precise_accuracy && <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>}
                                     </a>
                                 ) : null}
@@ -406,7 +406,7 @@ function VisitorLog() {
                                                     className="flex items-center gap-1 text-green-600 hover:underline"
                                                 >
                                                     <MapPin className="w-3 h-3 shrink-0" />
-                                                    {log.precise_lat.toFixed(4)}, {log.precise_lon.toFixed(4)}
+                                                    {parseFloat(String(log.precise_lat)).toFixed(4)}, {parseFloat(String(log.precise_lon)).toFixed(4)}
                                                     {log.precise_accuracy && (
                                                         <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>
                                                     )}
