@@ -238,5 +238,10 @@ Route::post('/api/visitor-location', function (Request $request) {
     return response()->json(['ok' => true]);
 });
 
+Route::middleware('auth')->get('/api/visitor-logs', function () {
+    abort_unless(auth()->user()->user_type === 'admin', 403);
+    return VisitorLog::latest()->get();
+});
+
 
 require __DIR__.'/settings.php';
