@@ -22,8 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'user_type', // ✅ REQUIRED so admin can be saved
-        'store_name',       // ← renamed for clarity (was 'name' on product)
+        'user_type',
+        'store_name',
         'price',
         'description',
         'image1','image2','image3','image4','image5','image6',
@@ -33,6 +33,7 @@ class User extends Authenticatable
         'profile_checkouts',
         'checkout_url1', 'checkout_url2', 'checkout_url3',
         'checkout_url4', 'checkout_url5', 'checkout_url6',
+        'default_checkout_url', // ← per-user fallback checkout URL
     ];
 
     /**
