@@ -85,19 +85,26 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
-    const [filter, setFilter] = useState<'today' | 'week' | 'month'>('today');
+    const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'range'>('today');
     const [stats, setStats]   = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [rangeFrom, setRangeFrom] = useState('');
+    const [rangeTo, setRangeTo]     = useState('');
+    const [rangeApplied, setRangeApplied] = useState(false);
 
     const LARAVEL_API = 'https://www.shopmyday.store';
 
     useEffect(() => {
+        if (filter === 'range' && !rangeApplied) return;
         setLoading(true);
-        fetch(`${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`)
+        const url = filter === 'range'
+            ? `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${rangeFrom}&to=${rangeTo}`
+            : `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`;
+        fetch(url)
             .then(r => r.json())
             .then(data => { setStats(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [filter, userId]);
+    }, [filter, userId, rangeApplied]);
 
     const now        = new Date();
     const year       = now.getFullYear();
@@ -132,20 +139,53 @@ function StatsCalendar({ userId }: { userId: number }) {
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
             {/* Filter tabs */}
-            <div className="flex gap-2 mb-4 justify-center">
-                {(['today', 'week', 'month'] as const).map(f => (
-                    <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                            filter === f
-                                ? 'bg-slate-800 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                    >
-                        {f.charAt(0).toUpperCase() + f.slice(1)}
-                    </button>
-                ))}
+            <div className="flex flex-col gap-3 mb-4 items-center">
+                <div className="flex gap-2">
+                    {(['today', 'week', 'month', 'range'] as const).map(f => (
+                        <button
+                            key={f}
+                            onClick={() => { setFilter(f); if (f !== 'range') setRangeApplied(false); }}
+                            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                                filter === f
+                                    ? 'bg-slate-800 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
+                            {f.charAt(0).toUpperCase() + f.slice(1)}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Range date pickers */}
+                {filter === 'range' && (
+                    <div className="flex flex-wrap items-center gap-2 justify-center">
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs text-slate-500">From</label>
+                            <input
+                                type="date"
+                                value={rangeFrom}
+                                onChange={e => { setRangeFrom(e.target.value); setRangeApplied(false); }}
+                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs text-slate-500">To</label>
+                            <input
+                                type="date"
+                                value={rangeTo}
+                                onChange={e => { setRangeTo(e.target.value); setRangeApplied(false); }}
+                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            />
+                        </div>
+                        <button
+                            onClick={() => { if (rangeFrom && rangeTo) setRangeApplied(true); }}
+                            disabled={!rangeFrom || !rangeTo}
+                            className="px-3 py-1 text-xs bg-slate-800 text-white rounded-full disabled:opacity-40 hover:bg-slate-700 transition-colors"
+                        >
+                            Apply
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Stats summary */}
