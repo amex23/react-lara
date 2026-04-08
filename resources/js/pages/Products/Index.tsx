@@ -84,6 +84,7 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 }
 
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
+// ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
     const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'range'>('today');
     const [stats, setStats]   = useState<Stats | null>(null);
@@ -92,26 +93,63 @@ function StatsCalendar({ userId }: { userId: number }) {
     const [rangeTo, setRangeTo]     = useState('');
     const [rangeApplied, setRangeApplied] = useState(false);
 
+    // ── Month navigation (0 = current month, -1 = prev, etc.) ───────────
+    const [monthOffset, setMonthOffset] = useState(0);
+
     const LARAVEL_API = 'https://www.shopmyday.store';
+
+    // Compute the target month's year/month from offset
+    const getTargetMonth = (offset: number) => {
+        const now = new Date();
+        const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+        return { year: d.getFullYear(), month: d.getMonth() };
+    };
+
+    // When on 'month' filter, build from/to for the target month
+    const getMonthRange = (offset: number) => {
+        const { year, month } = getTargetMonth(offset);
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const from = `${year}-${pad(month + 1)}-01`;
+        const lastDay = new Date(year, month + 1, 0).getDate();
+        const to = `${year}-${pad(month + 1)}-${pad(lastDay)}`;
+        return { from, to };
+    };
 
     useEffect(() => {
         if (filter === 'range' && !rangeApplied) return;
         setLoading(true);
-        const url = filter === 'range'
-            ? `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${rangeFrom}&to=${rangeTo}`
-            : `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`;
+
+        let url: string;
+        if (filter === 'range') {
+            url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${rangeFrom}&to=${rangeTo}`;
+        } else if (filter === 'month') {
+            // Always use range endpoint so monthOffset is respected
+            const { from, to } = getMonthRange(monthOffset);
+            url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${from}&to=${to}`;
+        } else {
+            url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=${filter}`;
+        }
+
         fetch(url)
             .then(r => r.json())
             .then(data => { setStats(data); setLoading(false); })
             .catch(() => setLoading(false));
-    }, [filter, userId, rangeApplied]);
+    }, [filter, userId, rangeApplied, monthOffset]);
 
-    const now        = new Date();
-    const year       = now.getFullYear();
-    const month      = now.getMonth();
+    // Reset offset when leaving month tab
+    const handleFilterChange = (f: typeof filter) => {
+        setFilter(f);
+        if (f !== 'range') setRangeApplied(false);
+        if (f !== 'month') setMonthOffset(0);
+    };
+
+    const now = new Date();
+
+    // Calendar renders the target month
+    const { year, month } = getTargetMonth(filter === 'month' ? monthOffset : 0);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDay   = new Date(year, month, 1).getDay();
-    const monthName  = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const firstDay    = new Date(year, month, 1).getDay();
+    const monthName   = new Date(year, month, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
 
     const apiDataMap: Record<string, { views: number; checkouts: number }> = {};
     stats?.daily?.forEach(e => {
@@ -144,7 +182,7 @@ function StatsCalendar({ userId }: { userId: number }) {
                     {(['today', 'week', 'month', 'range'] as const).map(f => (
                         <button
                             key={f}
-                            onClick={() => { setFilter(f); if (f !== 'range') setRangeApplied(false); }}
+                            onClick={() => handleFilterChange(f)}
                             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                                 filter === f
                                     ? 'bg-slate-800 text-white'
@@ -156,7 +194,6 @@ function StatsCalendar({ userId }: { userId: number }) {
                     ))}
                 </div>
 
-                {/* Range date pickers */}
                 {filter === 'range' && (
                     <div className="flex flex-wrap items-center gap-2 justify-center">
                         <div className="flex items-center gap-1.5">
@@ -205,10 +242,27 @@ function StatsCalendar({ userId }: { userId: number }) {
                 </div>
             </div>
 
-            {/* Calendar — only shown on month view */}
+            {/* Calendar — only on month view */}
             {filter === 'month' && (
                 <div>
-                    <h3 className="text-sm font-semibold text-center text-slate-600 mb-3">{monthName}</h3>
+                    {/* Month nav header */}
+                    <div className="flex items-center justify-between mb-3">
+                        <button
+                            onClick={() => setMonthOffset(o => o - 1)}
+                            className="px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                        >
+                            ← Prev
+                        </button>
+                        <h3 className="text-sm font-semibold text-slate-600">{monthName}</h3>
+                        <button
+                            onClick={() => setMonthOffset(o => o + 1)}
+                            disabled={monthOffset >= 0}
+                            className="px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next →
+                        </button>
+                    </div>
+
                     <div className="grid grid-cols-7 gap-1 text-center">
                         {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
                             <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
@@ -252,6 +306,7 @@ function StatsCalendar({ userId }: { userId: number }) {
         </div>
     );
 }
+
 
 // ── Geolocation Test (Admin Only) ────────────────────────────────────────
 function GeoTest() {
