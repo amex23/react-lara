@@ -84,7 +84,6 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
 }
 
 // ── Calendar + Stats Widget ───────────────────────────────────────────────
-// ── Calendar + Stats Widget ───────────────────────────────────────────────
 function StatsCalendar({ userId }: { userId: number }) {
     const [filter, setFilter] = useState<'today' | 'week' | 'month' | 'range'>('today');
     const [stats, setStats]   = useState<Stats | null>(null);
@@ -92,20 +91,16 @@ function StatsCalendar({ userId }: { userId: number }) {
     const [rangeFrom, setRangeFrom] = useState('');
     const [rangeTo, setRangeTo]     = useState('');
     const [rangeApplied, setRangeApplied] = useState(false);
-
-    // ── Month navigation (0 = current month, -1 = prev, etc.) ───────────
     const [monthOffset, setMonthOffset] = useState(0);
 
     const LARAVEL_API = 'https://www.shopmyday.store';
 
-    // Compute the target month's year/month from offset
     const getTargetMonth = (offset: number) => {
         const now = new Date();
         const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
         return { year: d.getFullYear(), month: d.getMonth() };
     };
 
-    // When on 'month' filter, build from/to for the target month
     const getMonthRange = (offset: number) => {
         const { year, month } = getTargetMonth(offset);
         const pad = (n: number) => String(n).padStart(2, '0');
@@ -123,7 +118,6 @@ function StatsCalendar({ userId }: { userId: number }) {
         if (filter === 'range') {
             url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${rangeFrom}&to=${rangeTo}`;
         } else if (filter === 'month') {
-            // Always use range endpoint so monthOffset is respected
             const { from, to } = getMonthRange(monthOffset);
             url = `${LARAVEL_API}/api/store-profile/${userId}/stats?filter=range&from=${from}&to=${to}`;
         } else {
@@ -136,7 +130,6 @@ function StatsCalendar({ userId }: { userId: number }) {
             .catch(() => setLoading(false));
     }, [filter, userId, rangeApplied, monthOffset]);
 
-    // Reset offset when leaving month tab
     const handleFilterChange = (f: typeof filter) => {
         setFilter(f);
         if (f !== 'range') setRangeApplied(false);
@@ -145,7 +138,6 @@ function StatsCalendar({ userId }: { userId: number }) {
 
     const now = new Date();
 
-    // Calendar renders the target month
     const { year, month } = getTargetMonth(filter === 'month' ? monthOffset : 0);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay    = new Date(year, month, 1).getDay();
@@ -194,80 +186,35 @@ function StatsCalendar({ userId }: { userId: number }) {
                     ))}
                 </div>
 
-                {/* Daily breakdown — shown on Range view */}
-{filter === 'range' && rangeApplied && stats?.daily && stats.daily.length > 0 && (
-    <div className="mt-2">
-        <h3 className="text-xs font-semibold text-slate-500 mb-2 text-center">Daily Breakdown</h3>
-        <div className="flex flex-col gap-1">
-            {/* Group daily entries by date */}
-            {Object.entries(
-                stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
-                    let d = e.date;
-                    if (d.includes('T')) d = d.split('T')[0];
-                    else if (d.includes(' ')) d = d.split(' ')[0];
-                    if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
-                    if (e.type === 'view')     acc[d].views     += e.count;
-                    if (e.type === 'checkout') acc[d].checkouts += e.count;
-                    return acc;
-                }, {})
-            )
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([date, data]) => {
-                const maxViews = Math.max(...Object.values(
-                    stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
-                        let d = e.date;
-                        if (d.includes('T')) d = d.split('T')[0];
-                        else if (d.includes(' ')) d = d.split(' ')[0];
-                        if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
-                        if (e.type === 'view')     acc[d].views     += e.count;
-                        if (e.type === 'checkout') acc[d].checkouts += e.count;
-                        return acc;
-                    }, {})
-                ).map(v => v.views), 1);
-
-                const label = new Date(date + 'T00:00:00').toLocaleDateString('default', {
-                    month: 'short', day: 'numeric', weekday: 'short'
-                });
-
-                return (
-                    <div key={date} className="flex items-center gap-2 px-1">
-                        <span className="text-xs text-slate-400 w-24 shrink-0">{label}</span>
-                        <div className="flex-1 flex flex-col gap-0.5">
-                            {/* Views bar */}
-                            <div className="flex items-center gap-1.5">
-                                <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                                    <div
-                                        className="bg-blue-400 h-2 rounded-full transition-all"
-                                        style={{ width: `${Math.round((data.views / maxViews) * 100)}%` }}
-                                    />
-                                </div>
-                                <span className="text-[10px] text-blue-500 font-medium w-8 text-right">{data.views}v</span>
-                            </div>
-                            {/* Checkouts bar */}
-                            {data.checkouts > 0 && (
-                                <div className="flex items-center gap-1.5">
-                                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                                        <div
-                                            className="bg-orange-400 h-2 rounded-full transition-all"
-                                            style={{ width: `${Math.round((data.checkouts / maxViews) * 100)}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-[10px] text-orange-500 font-medium w-8 text-right">{data.checkouts}c</span>
-                                </div>
-                            )}
+                {filter === 'range' && (
+                    <div className="flex flex-wrap items-center gap-2 justify-center">
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs text-slate-500">From</label>
+                            <input
+                                type="date"
+                                value={rangeFrom}
+                                onChange={e => { setRangeFrom(e.target.value); setRangeApplied(false); }}
+                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            />
                         </div>
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs text-slate-500">To</label>
+                            <input
+                                type="date"
+                                value={rangeTo}
+                                onChange={e => { setRangeTo(e.target.value); setRangeApplied(false); }}
+                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            />
+                        </div>
+                        <button
+                            onClick={() => { if (rangeFrom && rangeTo) setRangeApplied(true); }}
+                            disabled={!rangeFrom || !rangeTo}
+                            className="px-3 py-1 text-xs bg-slate-800 text-white rounded-full disabled:opacity-40 hover:bg-slate-700 transition-colors"
+                        >
+                            Apply
+                        </button>
                     </div>
-                );
-            })}
-        </div>
-        <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
-            <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
-        </div>
-    </div>
-)}
-
-
+                )}
             </div>
 
             {/* Stats summary */}
@@ -287,10 +234,74 @@ function StatsCalendar({ userId }: { userId: number }) {
                 </div>
             </div>
 
+            {/* Range daily breakdown */}
+            {filter === 'range' && rangeApplied && !loading && stats?.daily && stats.daily.length > 0 && (() => {
+                const grouped = stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
+                    let d = e.date;
+                    if (d.includes('T')) d = d.split('T')[0];
+                    else if (d.includes(' ')) d = d.split(' ')[0];
+                    if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
+                    if (e.type === 'view')     acc[d].views     += e.count;
+                    if (e.type === 'checkout') acc[d].checkouts += e.count;
+                    return acc;
+                }, {});
+
+                const sorted = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+                const maxViews = Math.max(...sorted.map(([, d]) => d.views), 1);
+
+                return (
+                    <div className="mt-2">
+                        <h3 className="text-xs font-semibold text-slate-500 mb-3 text-center">Daily Breakdown</h3>
+                        <div className="flex flex-col gap-2">
+                            {sorted.map(([date, data]) => {
+                                const label = new Date(date + 'T00:00:00').toLocaleDateString('default', {
+                                    month: 'short', day: 'numeric', weekday: 'short',
+                                });
+                                return (
+                                    <div key={date} className="flex items-center gap-2 px-1">
+                                        <span className="text-xs text-slate-400 w-24 shrink-0">{label}</span>
+                                        <div className="flex-1 flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                                    <div
+                                                        className="bg-blue-400 h-2 rounded-full"
+                                                        style={{ width: `${Math.round((data.views / maxViews) * 100)}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-[10px] text-blue-500 font-medium w-8 text-right">{data.views}v</span>
+                                            </div>
+                                            {data.checkouts > 0 && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                                        <div
+                                                            className="bg-orange-400 h-2 rounded-full"
+                                                            style={{ width: `${Math.round((data.checkouts / maxViews) * 100)}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-[10px] text-orange-500 font-medium w-8 text-right">{data.checkouts}c</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
+                            <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
+                            <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Range — no data message */}
+            {filter === 'range' && rangeApplied && !loading && (!stats?.daily || stats.daily.length === 0) && (
+                <div className="text-center text-xs text-slate-400 py-4">No activity for the selected range.</div>
+            )}
+
             {/* Calendar — only on month view */}
             {filter === 'month' && (
                 <div>
-                    {/* Month nav header */}
                     <div className="flex items-center justify-between mb-3">
                         <button
                             onClick={() => setMonthOffset(o => o - 1)}
@@ -436,10 +447,8 @@ function VisitorLog() {
             .catch(() => setLoading(false));
     }, []);
 
-    // Reset to page 1 when filters change
     useEffect(() => { setPage(1); }, [dateFrom, dateTo]);
 
-    // Filter by date range
     const filtered = logs.filter(log => {
         const logDate = new Date(log.created_at);
         if (dateFrom && logDate < new Date(dateFrom + 'T00:00:00')) return false;
@@ -454,14 +463,11 @@ function VisitorLog() {
 
     return (
         <div className="w-full bg-white border rounded-xl shadow-sm overflow-hidden mb-6">
-            {/* Header */}
             <div className="px-4 py-3 border-b bg-slate-50 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 text-slate-500" />
                     <h2 className="text-sm font-semibold text-slate-700">Recent Visitors</h2>
                 </div>
-
-                {/* Date filters */}
                 <div className="flex flex-wrap items-center gap-2 ml-auto">
                     <div className="flex items-center gap-1.5">
                         <label className="text-xs text-slate-500 whitespace-nowrap">From</label>
@@ -503,7 +509,6 @@ function VisitorLog() {
                 </div>
             ) : (
                 <>
-                    {/* Mobile card view */}
                     <div className="flex flex-col divide-y md:hidden">
                         {paginated.map((log) => (
                             <div key={log.id} className="p-4 space-y-1.5">
@@ -558,7 +563,6 @@ function VisitorLog() {
                         ))}
                     </div>
 
-                    {/* Desktop table view */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
@@ -636,29 +640,17 @@ function VisitorLog() {
                         </table>
                     </div>
 
-                    {/* Pagination */}
                     {totalPages > 1 && (
                         <div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
                             <span className="text-xs text-slate-500">
                                 Page {page} of {totalPages} &nbsp;·&nbsp; showing {((page - 1) * PER_PAGE) + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
                             </span>
                             <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setPage(1)}
-                                    disabled={page === 1}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    «
-                                </button>
-                                <button
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    disabled={page === 1}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    ‹
-                                </button>
+                                <button onClick={() => setPage(1)} disabled={page === 1}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
 
-                                {/* Page number buttons */}
                                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                                     .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
                                     .reduce<(number | string)[]>((acc, p, idx, arr) => {
@@ -670,35 +662,18 @@ function VisitorLog() {
                                         p === '...' ? (
                                             <span key={`ellipsis-${idx}`} className="px-1 text-xs text-slate-400">…</span>
                                         ) : (
-                                            <button
-                                                key={p}
-                                                onClick={() => setPage(p as number)}
+                                            <button key={p} onClick={() => setPage(p as number)}
                                                 className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                                                    page === p
-                                                        ? 'bg-slate-800 text-white border-slate-800'
-                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-100'
-                                                }`}
-                                            >
-                                                {p}
-                                            </button>
+                                                    page === p ? 'bg-slate-800 text-white border-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                }`}>{p}</button>
                                         )
                                     )
                                 }
 
-                                <button
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    ›
-                                </button>
-                                <button
-                                    onClick={() => setPage(totalPages)}
-                                    disabled={page === totalPages}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    »
-                                </button>
+                                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
+                                <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                             </div>
                         </div>
                     )}
@@ -743,7 +718,6 @@ export default function Index() {
                             </div>
                         )}
 
-                        {/* Stats Calendar — only for connected users */}
                         {!isAdmin && myProfile?.subscription && myProfile?.id && (
                             <StatsCalendar userId={myProfile.id} />
                         )}
@@ -774,10 +748,7 @@ export default function Index() {
                     </Alert>
                 )}
 
-                {/* Visitor Log — Admin only */}
                 {isAdmin && <VisitorLog />}
-
-                {/* Geolocation Test — Admin only */}
                 {isAdmin && <GeoTest />}
 
                 {products.length === 0 ? (
@@ -788,7 +759,6 @@ export default function Index() {
                     </div>
                 ) : (
                     <>
-                        {/* Mobile card view */}
                         <div className="flex flex-col gap-4 md:hidden">
                             {products.map((product) => (
                                 <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
@@ -798,27 +768,18 @@ export default function Index() {
                                             <span>{product.owner_name || `User #${product.user_id}`}</span>
                                         </div>
                                     )}
-
-                                    {/* Images row */}
                                     <div className="flex gap-1.5 flex-wrap">
                                         {[1,2,3,4,5,6].map((i) => {
                                             const key = `image${i}_url` as keyof Product;
                                             return product[key] ? (
-                                                <img
-                                                    key={i}
-                                                    src={product[key] as string}
-                                                    alt={`Image ${i}`}
-                                                    className="w-10 h-10 object-cover rounded border shadow-sm"
-                                                />
+                                                <img key={i} src={product[key] as string} alt={`Image ${i}`}
+                                                    className="w-10 h-10 object-cover rounded border shadow-sm" />
                                             ) : null;
                                         })}
                                         {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                                                no img
-                                            </div>
+                                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
                                         )}
                                     </div>
-
                                     <div className="space-y-1">
                                         <p className="font-semibold text-sm">{product.name}</p>
                                         {product.price != null && (
@@ -828,7 +789,6 @@ export default function Index() {
                                             <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                                         )}
                                     </div>
-
                                     <div className="flex items-center justify-between pt-1">
                                         {product.subscription ? (
                                             <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
@@ -848,7 +808,6 @@ export default function Index() {
                             ))}
                         </div>
 
-                        {/* Desktop table view */}
                         <div className="hidden md:block overflow-x-auto rounded-lg border">
                             <Table>
                                 <TableHeader>
