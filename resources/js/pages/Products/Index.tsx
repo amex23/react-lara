@@ -194,35 +194,80 @@ function StatsCalendar({ userId }: { userId: number }) {
                     ))}
                 </div>
 
-                {filter === 'range' && (
-                    <div className="flex flex-wrap items-center gap-2 justify-center">
-                        <div className="flex items-center gap-1.5">
-                            <label className="text-xs text-slate-500">From</label>
-                            <input
-                                type="date"
-                                value={rangeFrom}
-                                onChange={e => { setRangeFrom(e.target.value); setRangeApplied(false); }}
-                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                            />
+                {/* Daily breakdown — shown on Range view */}
+{filter === 'range' && rangeApplied && stats?.daily && stats.daily.length > 0 && (
+    <div className="mt-2">
+        <h3 className="text-xs font-semibold text-slate-500 mb-2 text-center">Daily Breakdown</h3>
+        <div className="flex flex-col gap-1">
+            {/* Group daily entries by date */}
+            {Object.entries(
+                stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
+                    let d = e.date;
+                    if (d.includes('T')) d = d.split('T')[0];
+                    else if (d.includes(' ')) d = d.split(' ')[0];
+                    if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
+                    if (e.type === 'view')     acc[d].views     += e.count;
+                    if (e.type === 'checkout') acc[d].checkouts += e.count;
+                    return acc;
+                }, {})
+            )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, data]) => {
+                const maxViews = Math.max(...Object.values(
+                    stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
+                        let d = e.date;
+                        if (d.includes('T')) d = d.split('T')[0];
+                        else if (d.includes(' ')) d = d.split(' ')[0];
+                        if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
+                        if (e.type === 'view')     acc[d].views     += e.count;
+                        if (e.type === 'checkout') acc[d].checkouts += e.count;
+                        return acc;
+                    }, {})
+                ).map(v => v.views), 1);
+
+                const label = new Date(date + 'T00:00:00').toLocaleDateString('default', {
+                    month: 'short', day: 'numeric', weekday: 'short'
+                });
+
+                return (
+                    <div key={date} className="flex items-center gap-2 px-1">
+                        <span className="text-xs text-slate-400 w-24 shrink-0">{label}</span>
+                        <div className="flex-1 flex flex-col gap-0.5">
+                            {/* Views bar */}
+                            <div className="flex items-center gap-1.5">
+                                <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className="bg-blue-400 h-2 rounded-full transition-all"
+                                        style={{ width: `${Math.round((data.views / maxViews) * 100)}%` }}
+                                    />
+                                </div>
+                                <span className="text-[10px] text-blue-500 font-medium w-8 text-right">{data.views}v</span>
+                            </div>
+                            {/* Checkouts bar */}
+                            {data.checkouts > 0 && (
+                                <div className="flex items-center gap-1.5">
+                                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                                        <div
+                                            className="bg-orange-400 h-2 rounded-full transition-all"
+                                            style={{ width: `${Math.round((data.checkouts / maxViews) * 100)}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[10px] text-orange-500 font-medium w-8 text-right">{data.checkouts}c</span>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <label className="text-xs text-slate-500">To</label>
-                            <input
-                                type="date"
-                                value={rangeTo}
-                                onChange={e => { setRangeTo(e.target.value); setRangeApplied(false); }}
-                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
-                            />
-                        </div>
-                        <button
-                            onClick={() => { if (rangeFrom && rangeTo) setRangeApplied(true); }}
-                            disabled={!rangeFrom || !rangeTo}
-                            className="px-3 py-1 text-xs bg-slate-800 text-white rounded-full disabled:opacity-40 hover:bg-slate-700 transition-colors"
-                        >
-                            Apply
-                        </button>
                     </div>
-                )}
+                );
+            })}
+        </div>
+        <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
+            <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
+        </div>
+    </div>
+)}
+
+
             </div>
 
             {/* Stats summary */}
