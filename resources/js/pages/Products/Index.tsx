@@ -235,64 +235,91 @@ function StatsCalendar({ userId }: { userId: number }) {
             </div>
 
             {/* Range daily breakdown */}
-            {filter === 'range' && rangeApplied && !loading && stats?.daily && stats.daily.length > 0 && (() => {
-                const grouped = stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
-                    let d = e.date;
-                    if (d.includes('T')) d = d.split('T')[0];
-                    else if (d.includes(' ')) d = d.split(' ')[0];
-                    if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
-                    if (e.type === 'view')     acc[d].views     += e.count;
-                    if (e.type === 'checkout') acc[d].checkouts += e.count;
-                    return acc;
-                }, {});
+           {/* Range daily breakdown — calendar grid style */}
+{filter === 'range' && rangeApplied && !loading && stats?.daily && stats.daily.length > 0 && (() => {
+    const grouped = stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
+        let d = e.date;
+        if (d.includes('T')) d = d.split('T')[0];
+        else if (d.includes(' ')) d = d.split(' ')[0];
+        if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
+        if (e.type === 'view')     acc[d].views     += e.count;
+        if (e.type === 'checkout') acc[d].checkouts += e.count;
+        return acc;
+    }, {});
 
-                const sorted = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
-                const maxViews = Math.max(...sorted.map(([, d]) => d.views), 1);
+    const sorted = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    const today = now.toISOString().split('T')[0];
 
-                return (
-                    <div className="mt-2">
-                        <h3 className="text-xs font-semibold text-slate-500 mb-3 text-center">Daily Breakdown</h3>
-                        <div className="flex flex-col gap-2">
-                            {sorted.map(([date, data]) => {
-                                const label = new Date(date + 'T00:00:00').toLocaleDateString('default', {
-                                    month: 'short', day: 'numeric', weekday: 'short',
-                                });
-                                return (
-                                    <div key={date} className="flex items-center gap-2 px-1">
-                                        <span className="text-xs text-slate-400 w-24 shrink-0">{label}</span>
-                                        <div className="flex-1 flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                                                    <div
-                                                        className="bg-blue-400 h-2 rounded-full"
-                                                        style={{ width: `${Math.round((data.views / maxViews) * 100)}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-[10px] text-blue-500 font-medium w-8 text-right">{data.views}v</span>
-                                            </div>
-                                            {data.checkouts > 0 && (
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                                                        <div
-                                                            className="bg-orange-400 h-2 rounded-full"
-                                                            style={{ width: `${Math.round((data.checkouts / maxViews) * 100)}%` }}
-                                                        />
-                                                    </div>
-                                                    <span className="text-[10px] text-orange-500 font-medium w-8 text-right">{data.checkouts}c</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+    // Find the first day of the first date to align the grid
+    const firstDate = sorted[0]?.[0];
+    const lastDate  = sorted[sorted.length - 1]?.[0];
+
+    if (!firstDate || !lastDate) return null;
+
+    // Build a full range of dates from first to last
+    const allDays: string[] = [];
+    const cursor = new Date(firstDate + 'T00:00:00');
+    const end    = new Date(lastDate  + 'T00:00:00');
+    while (cursor <= end) {
+        allDays.push(cursor.toISOString().split('T')[0]);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const firstDayOfWeek = new Date(firstDate + 'T00:00:00').getDay();
+
+    return (
+        <div className="mt-2">
+            <div className="grid grid-cols-7 gap-1 text-center">
+                {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                    <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
+                ))}
+                {/* Leading empty cells */}
+                {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                    <div key={`empty-${i}`} />
+                ))}
+                {allDays.map((dateStr) => {
+                    const data     = grouped[dateStr] || { views: 0, checkouts: 0 };
+                    const hasData  = data.views > 0 || data.checkouts > 0;
+                    const isToday  = dateStr === today;
+                    const dow      = new Date(dateStr + 'T00:00:00').getDay();
+                    const isWeekend = dow === 0 || dow === 6;
+                    const day      = parseInt(dateStr.split('-')[2]);
+
+                    return (
+                        <div
+                            key={dateStr}
+                            title={hasData
+                                ? `Views: ${data.views}, Checkouts: ${data.checkouts}`
+                                : `No activity on ${dateStr}`
+                            }
+                            className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
+                                isToday
+                                    ? 'bg-slate-800 text-white font-bold'
+                                    : hasData
+                                    ? 'bg-green-50 text-green-800'
+                                    : isWeekend
+                                    ? 'bg-slate-50 text-slate-400'
+                                    : 'text-slate-500'
+                            }`}
+                        >
+                            <div className={isWeekend && !hasData && !isToday ? 'text-slate-400' : ''}>{day}</div>
+                            {data.views > 0 && (
+                                <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>
+                            )}
+                            {data.checkouts > 0 && (
+                                <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>
+                            )}
                         </div>
-                        <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
-                            <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
-                            <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
-                        </div>
-                    </div>
-                );
-            })()}
+                    );
+                })}
+            </div>
+            <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
+                <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
+                <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
+            </div>
+        </div>
+    );
+})()}
 
             {/* Range — no data message */}
             {filter === 'range' && rangeApplied && !loading && (!stats?.daily || stats.daily.length === 0) && (
