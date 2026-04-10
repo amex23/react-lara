@@ -783,6 +783,107 @@ export default function Index() {
 
     const myProfile = !isAdmin ? products[0] : null;
 
+    // ── Products table JSX, extracted so we can render it in different spots ──
+    const productsTable = (
+        <>
+            {/* Mobile cards */}
+            <div className="flex flex-col gap-4 md:hidden">
+                {products.map((product) => (
+                    <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
+                        {isAdmin && (
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                                <span>ID: {product.id}</span>
+                                <span>{product.owner_name || `User #${product.user_id}`}</span>
+                            </div>
+                        )}
+                        <div className="flex gap-1.5 flex-wrap">
+                            {[1,2,3,4,5,6].map((i) => {
+                                const key = `image${i}_url` as keyof Product;
+                                return product[key] ? (
+                                    <span key={i} className='relative'>
+                                        <img src={product[key] as string} alt={`Image ${i}`} className="w-18 h-18 object-cover rounded border shadow-sm" />
+                                        <span className='bg-red-500 absolute px-1 py-0 top-[2%] right-0 text-md text-white font-bold rounded-sm'>2</span>
+                                    </span>
+                                ) : null;
+                            })}
+                            {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                                <div className="w-18 h-18 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
+                            )}
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-semibold text-sm">{product.name}</p>
+                            {product.price != null && <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>}
+                            {product.description && <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>}
+                        </div>
+                        <div className="flex items-center justify-between pt-1">
+                            {product.subscription ? (
+                                <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
+                            ) : (
+                                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
+                            )}
+                            <div className="flex gap-2">
+                                <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
+                                {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto rounded-lg border bg-white">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {isAdmin && <TableHead className="w-16">ID</TableHead>}
+                            {isAdmin && <TableHead className="w-44">Owner</TableHead>}
+                            <TableHead>My Images</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right w-36">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {products.map((product) => (
+                            <TableRow key={product.id}>
+                                {isAdmin && <TableCell className="font-medium">{product.id}</TableCell>}
+                                {isAdmin && <TableCell className="text-sm">{product.owner_name || `User #${product.user_id}`}</TableCell>}
+                                <TableCell>
+                                    <div className="flex gap-1.5 flex-wrap w-full ">
+                                        {[1,2,3,4,5,6].map((i) => {
+                                            const key = `image${i}_url` as keyof Product;
+                                            return product[key] ? (
+                                                <span key={i} className='relative'>
+                                                    <img src={product[key] as string} alt={`Image ${i}`} className="w-16 h-16 object-cover rounded border shadow-sm" />
+                                                    <span className='bg-red-500 absolute px-1 py-0 top-[2%] right-0 text-md text-white font-bold'>2</span>
+                                                </span>
+                                            ) : null;
+                                        })}
+                                        {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                                            <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="font-medium">{product.name}</TableCell>
+                                <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
+                                <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
+                                <TableCell>
+                                    {product.subscription ? <span className="text-green-600 font-medium">✓ Connected</span> : <span className="text-slate-400">✗ Not Connected</span>}
+                                </TableCell>
+                                <TableCell className="text-right space-x-2">
+                                    <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
+                                    {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </>
+    );
+
     return (
         <AppLayout breadcrumbs={[{
             title: isAdmin ? 'Products' : 'Dashboard',
@@ -806,6 +907,9 @@ export default function Index() {
                         {!isAdmin && myProfile?.subscription && myProfile?.id && (
                             <StatsCalendar userId={myProfile.id} />
                         )}
+
+                        {/* Products table — moved here, above Orders, for non-admin users */}
+                        {!isAdmin && products.length > 0 && productsTable}
 
                         {/* Orders section — only for connected non-admin users */}
                         {!isAdmin && myProfile?.subscription && (
@@ -835,100 +939,20 @@ export default function Index() {
                 {isAdmin && <VisitorLog />}
                 {isAdmin && <GeoTest />}
 
-                {products.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                        {isAdmin ? 'No store profiles have been created yet.' : "You haven't set up your store profile yet."}
-                    </div>
-                ) : (
-                    <>
-                        <div className="flex flex-col gap-4 md:hidden">
-                            {products.map((product) => (
-                                <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
-                                    {isAdmin && (
-                                        <div className="flex justify-between text-sm text-muted-foreground">
-                                            <span>ID: {product.id}</span>
-                                            <span>{product.owner_name || `User #${product.user_id}`}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex gap-1.5 flex-wrap">
-                                        {[1,2,3,4,5,6].map((i) => {
-                                            const key = `image${i}_url` as keyof Product;
-                                            return product[key] ? (
-                                                <img key={i} src={product[key] as string} alt={`Image ${i}`} className="w-10 h-10 object-cover rounded border shadow-sm" />
-                                            ) : null;
-                                        })}
-                                        {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
-                                        )}
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="font-semibold text-sm">{product.name}</p>
-                                        {product.price != null && <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>}
-                                        {product.description && <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>}
-                                    </div>
-                                    <div className="flex items-center justify-between pt-1">
-                                        {product.subscription ? (
-                                            <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
-                                        ) : (
-                                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
-                                        )}
-                                        <div className="flex gap-2">
-                                            <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
-                                            {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                {/* Admin still sees the full table at the bottom */}
+                {isAdmin && (
+                    products.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground border rounded-lg">
+                            No store profiles have been created yet.
                         </div>
+                    ) : productsTable
+                )}
 
-                        <div className="hidden md:block overflow-x-auto rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        {isAdmin && <TableHead className="w-16">ID</TableHead>}
-                                        {isAdmin && <TableHead className="w-44">Owner</TableHead>}
-                                        <TableHead>My Images</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Price</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right w-36">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {products.map((product) => (
-                                        <TableRow key={product.id}>
-                                            {isAdmin && <TableCell className="font-medium">{product.id}</TableCell>}
-                                            {isAdmin && <TableCell className="text-sm">{product.owner_name || `User #${product.user_id}`}</TableCell>}
-                                            <TableCell>
-                                                <div className="flex gap-1.5 flex-wrap max-w-[140px]">
-                                                    {[1,2,3,4,5,6].map((i) => {
-                                                        const key = `image${i}_url` as keyof Product;
-                                                        return product[key] ? (
-                                                            <img key={i} src={product[key] as string} alt={`Image ${i}`} className="w-10 h-10 object-cover rounded border shadow-sm" />
-                                                        ) : null;
-                                                    })}
-                                                    {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="font-medium">{product.name}</TableCell>
-                                            <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
-                                            <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
-                                            <TableCell>
-                                                {product.subscription ? <span className="text-green-600 font-medium">✓ Connected</span> : <span className="text-slate-400">✗ Not Connected</span>}
-                                            </TableCell>
-                                            <TableCell className="text-right space-x-2">
-                                                <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
-                                                {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </>
+                {/* Non-admin empty state */}
+                {!isAdmin && products.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground border rounded-lg">
+                        You haven't set up your store profile yet.
+                    </div>
                 )}
             </div>
         </AppLayout>
