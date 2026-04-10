@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->validateCsrfTokens(except: [
             'api/store-profile/*',
+            'api/webhooks/shopify/orders',
         ]);
 
         $middleware->alias([
@@ -37,4 +38,5 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+    
     
