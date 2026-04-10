@@ -198,23 +198,26 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
 
     $order = $request->json()->all();
 
-    // Temporary debug logging
-    \Illuminate\Support\Facades\Log::info('Shopify webhook received', [
-        'landing_site'   => $order['landing_site']   ?? 'NULL',
-        'referring_site' => $order['referring_site'] ?? 'NULL',
-        'source_name'    => $order['source_name']    ?? 'NULL',
-        'order_id'       => $order['id']             ?? 'NULL',
-    ]);
-
-    // 2. Extract utm_user from landing_site
+    // 2. Extract utm_user — check cart attributes first (most reliable),
+    //    then fall back to landing_site URL params
     $landingSite = $order['landing_site'] ?? null;
     $userId      = null;
 
-    if ($landingSite) {
-        $query = [];
-        parse_str(parse_url($landingSite, PHP_URL_QUERY) ?? '', $query);
-        if (!empty($query['utm_user'])) {
-            $userId = (int) $query['utm_user'];
+    // Primary: cart attributes (set by cc-app.liquid before checkout)
+    $cartAttributes = $order['cart_attributes'] ?? $order['note_attributes'] ?? [];
+    foreach ($cartAttributes as $attr) {
+        if (($attr['name'] ?? '') === 'utm_user' && !empty($attr['value'])) {
+            $userId = (int) $attr['value'];
+            break;
+        }
+    }
+
+    // Fallback: landing_site URL
+    if (!$userId && $landingSite && $landingSite !== '/') {
+        $qs = [];
+        parse_str(parse_url($landingSite, PHP_URL_QUERY) ?? '', $qs);
+        if (!empty($qs['utm_user'])) {
+            $userId = (int) $qs['utm_user'];
         }
     }
 
