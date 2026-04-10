@@ -198,6 +198,14 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
 
     $order = $request->json()->all();
 
+    // Temporary debug logging
+    \Illuminate\Support\Facades\Log::info('Shopify webhook received', [
+        'landing_site'   => $order['landing_site']   ?? 'NULL',
+        'referring_site' => $order['referring_site'] ?? 'NULL',
+        'source_name'    => $order['source_name']    ?? 'NULL',
+        'order_id'       => $order['id']             ?? 'NULL',
+    ]);
+
     // 2. Extract utm_user from landing_site
     $landingSite = $order['landing_site'] ?? null;
     $userId      = null;
