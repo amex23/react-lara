@@ -85,7 +85,7 @@ Route::get('/api/store-profile/{id}', function ($id) {
 })->name('api.store.profile');
 
 // Track profile view
-Route::post('/api/store-profile/{id}/view', function ($id) {
+Route::post('/api/store-profile/{id}/view', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
@@ -96,10 +96,11 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
     $user->increment('profile_views');
 
     DB::table('profile_events')->insert([
-        'user_id'    => $user->id,
-        'type'       => 'view',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'user_id'     => $user->id,
+        'type'        => 'view',
+        'image_index' => $request->input('image_index'),
+        'created_at'  => now(),
+        'updated_at'  => now(),
     ]);
 
     return response()->json(['views' => $user->profile_views])
@@ -107,7 +108,7 @@ Route::post('/api/store-profile/{id}/view', function ($id) {
 });
 
 // Track checkout click
-Route::post('/api/store-profile/{id}/checkout', function ($id) {
+Route::post('/api/store-profile/{id}/checkout', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
@@ -118,10 +119,11 @@ Route::post('/api/store-profile/{id}/checkout', function ($id) {
     $user->increment('profile_checkouts');
 
     DB::table('profile_events')->insert([
-        'user_id'    => $user->id,
-        'type'       => 'checkout',
-        'created_at' => now(),
-        'updated_at' => now(),
+        'user_id'     => $user->id,
+        'type'        => 'checkout',
+        'image_index' => $request->input('image_index'),
+        'created_at'  => now(),
+        'updated_at'  => now(),
     ]);
 
     return response()->json(['checkouts' => $user->profile_checkouts])
@@ -173,11 +175,22 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
             return $item;
         });
 
+    // Per-image views for TODAY — used by dashboard image badges (resets every 24h)
+    $perImageTodayViews = DB::table('profile_events')
+        ->where('user_id', $user->id)
+        ->where('type', 'view')
+        ->whereDate('created_at', today())
+        ->whereNotNull('image_index')
+        ->selectRaw('image_index, COUNT(*) as count')
+        ->groupBy('image_index')
+        ->pluck('count', 'image_index');
+
     return response()->json([
-        'views'     => $views,
-        'checkouts' => $checkouts,
-        'daily'     => $daily,
-        'filter'    => $filter,
+        'views'                 => $views,
+        'checkouts'             => $checkouts,
+        'daily'                 => $daily,
+        'filter'                => $filter,
+        'per_image_today_views' => $perImageTodayViews,
     ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.stats');
 

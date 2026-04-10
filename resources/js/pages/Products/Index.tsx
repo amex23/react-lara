@@ -50,6 +50,7 @@ interface Stats {
     views: number;
     checkouts: number;
     daily: DailyEvent[];
+    per_image_today_views?: Record<string, number>;
 }
 
 interface VisitorEntry {
@@ -783,6 +784,17 @@ export default function Index() {
 
     const myProfile = !isAdmin ? products[0] : null;
 
+    // Per-image today view counts, keyed by image_index (0-5)
+    const [perImageToday, setPerImageToday] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        if (isAdmin || !myProfile?.subscription || !myProfile?.id) return;
+        fetch(`https://www.shopmyday.store/api/store-profile/${myProfile.id}/stats?filter=today`)
+            .then(r => r.json())
+            .then(d => setPerImageToday(d.per_image_today_views || {}))
+            .catch(() => {});
+    }, [isAdmin, myProfile?.id, myProfile?.subscription]);
+
     // ── Products table JSX, extracted so we can render it in different spots ──
     const productsTable = (
         <>
@@ -802,7 +814,11 @@ export default function Index() {
                                 return product[key] ? (
                                     <span key={i} className='relative'>
                                         <img src={product[key] as string} alt={`Image ${i}`} className="w-18 h-18 object-cover rounded border shadow-sm" />
-                                        <span className='bg-red-500 absolute px-1 py-0 top-[2%] right-0 text-md text-white font-bold rounded-sm'>2</span>
+                                        {(perImageToday[String(i - 1)] ?? 0) > 0 && (
+                                            <span className='bg-red-500 absolute px-1 py-0 top-[2%] right-0 text-md text-white font-bold rounded-sm'>
+                                                {perImageToday[String(i - 1)]}
+                                            </span>
+                                        )}
                                     </span>
                                 ) : null;
                             })}
@@ -857,7 +873,11 @@ export default function Index() {
                                             return product[key] ? (
                                                 <span key={i} className='relative'>
                                                     <img src={product[key] as string} alt={`Image ${i}`} className="w-16 h-16 object-cover rounded border shadow-sm" />
-                                                    <span className='bg-red-500 absolute px-1 py-0 top-[2%] right-0 text-md text-white font-bold'>2</span>
+                                                    {(perImageToday[String(i - 1)] ?? 0) > 0 && (
+                                                        <span className='bg-red-500 absolute px-1 py-0 top-[2%] right-0 text-md text-white font-bold rounded-sm'>
+                                                            {perImageToday[String(i - 1)]}
+                                                        </span>
+                                                    )}
                                                 </span>
                                             ) : null;
                                         })}
