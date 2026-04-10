@@ -3,7 +3,7 @@ import { Head, usePage, useForm } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { route } from 'ziggy-js';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Megaphone, Plus, Globe, MapPin, Wifi, Clock, ShoppingBag } from 'lucide-react';
+import { Megaphone, Plus, Globe, MapPin, Wifi, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import {
     Table,
@@ -69,33 +69,6 @@ interface VisitorEntry {
     created_at: string;
 }
 
-interface LineItem {
-    name: string;
-    quantity: number;
-    price: string;
-}
-
-interface Order {
-    id: number;
-    shopify_order_id: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    total_price: number;
-    line_items: string;
-    ordered_at: string;
-}
-
-interface OrdersResponse {
-    total: number;
-    revenue: number;
-    orders: {
-        data: Order[];
-        current_page: number;
-        last_page: number;
-        total: number;
-    };
-}
-
 function DeleteButton({ url, name }: { url: string; name: string }) {
     const { processing, delete: destroy } = useForm({});
     const handle = () => {
@@ -107,212 +80,6 @@ function DeleteButton({ url, name }: { url: string; name: string }) {
         <Button size="sm" variant="destructive" disabled={processing} onClick={handle}>
             Clear
         </Button>
-    );
-}
-
-// ── Orders Section ────────────────────────────────────────────────────────
-function OrdersSection() {
-    const [data, setData]       = useState<OrdersResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage]       = useState(1);
-    const [from, setFrom]       = useState('');
-    const [to, setTo]           = useState('');
-
-    const fetchOrders = (p = 1) => {
-        setLoading(true);
-        const params = new URLSearchParams({ page: String(p) });
-        if (from) params.append('from', from);
-        if (to)   params.append('to', to);
-
-        fetch(`/api/orders?${params}`, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-            credentials: 'include',
-        })
-            .then(r => r.json())
-            .then(d => { setData(d); setLoading(false); })
-            .catch(() => setLoading(false));
-    };
-
-    useEffect(() => { fetchOrders(1); setPage(1); }, [from, to]);
-
-    const handlePageChange = (p: number) => {
-        setPage(p);
-        fetchOrders(p);
-    };
-
-    const parseItems = (raw: string): LineItem[] => {
-        try { return JSON.parse(raw); } catch { return []; }
-    };
-
-    const totalPages = data?.orders?.last_page ?? 1;
-
-    return (
-        // hide sales for now
-        <div className="hidden w-full bg-white border rounded-xl shadow-sm overflow-hidden mb-6">
-            {/* Header */}
-            <div className="px-4 py-3 border-b bg-slate-50 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                    <ShoppingBag className="w-4 h-4 text-slate-500" />
-                    <h2 className="text-sm font-semibold text-slate-700">Orders from ShopMyDay</h2>
-                </div>
-
-                {/* Date filters */}
-                <div className="flex flex-wrap items-center gap-2 ml-auto">
-                    <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-slate-500 whitespace-nowrap">From</label>
-                        <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-                            className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300" />
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <label className="text-xs text-slate-500 whitespace-nowrap">To</label>
-                        <input type="date" value={to} onChange={e => setTo(e.target.value)}
-                            className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300" />
-                    </div>
-                    {(from || to) && (
-                        <button onClick={() => { setFrom(''); setTo(''); }}
-                            className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-md hover:bg-red-50 transition-colors">
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Summary cards */}
-            {!loading && data && (
-                <div className="flex divide-x border-b">
-                    <div className="flex-1 px-6 py-4 text-center">
-                        <div className="text-2xl font-bold text-slate-800">{data.total}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">Total Orders</div>
-                    </div>
-                    <div className="flex-1 px-6 py-4 text-center">
-                        <div className="text-2xl font-bold text-emerald-600">${data.revenue.toFixed(2)}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">Total Revenue</div>
-                    </div>
-                </div>
-            )}
-
-            {loading ? (
-                <div className="p-6 text-center text-sm text-slate-400">Loading...</div>
-            ) : !data?.orders?.data?.length ? (
-                <div className="p-8 text-center">
-                    <ShoppingBag className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                    <p className="text-sm text-slate-400">No orders yet from ShopMyDay.</p>
-                    <p className="text-xs text-slate-300 mt-1">Orders will appear here when customers purchase after clicking your story widget.</p>
-                </div>
-            ) : (
-                <>
-                    {/* Mobile cards */}
-                    <div className="flex flex-col divide-y md:hidden">
-                        {data.orders.data.map(order => {
-                            const items = parseItems(order.line_items);
-                            return (
-                                <div key={order.id} className="p-4 space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-mono text-slate-500">#{order.shopify_order_id}</span>
-                                        <span className="text-xs font-semibold text-emerald-600">${Number(order.total_price).toFixed(2)}</span>
-                                    </div>
-                                    <div className="text-sm font-medium text-slate-700">{order.customer_name || '—'}</div>
-                                    {order.customer_email && (
-                                        <div className="text-xs text-slate-400">{order.customer_email}</div>
-                                    )}
-                                    <div className="space-y-0.5">
-                                        {items.map((item, i) => (
-                                            <div key={i} className="text-xs text-slate-500">
-                                                {item.quantity}× {item.name} <span className="text-slate-400">${item.price}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="text-xs text-slate-400">
-                                        {new Date(order.ordered_at).toLocaleString()}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Desktop table */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-xs">
-                            <thead>
-                                <tr className="border-b bg-slate-50 text-slate-500">
-                                    <th className="text-left px-4 py-2 font-medium">Order ID</th>
-                                    <th className="text-left px-4 py-2 font-medium">Customer</th>
-                                    <th className="text-left px-4 py-2 font-medium">Items</th>
-                                    <th className="text-left px-4 py-2 font-medium">Amount</th>
-                                    <th className="text-left px-4 py-2 font-medium">Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.orders.data.map(order => {
-                                    const items = parseItems(order.line_items);
-                                    return (
-                                        <tr key={order.id} className="border-b hover:bg-slate-50 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-slate-500">#{order.shopify_order_id}</td>
-                                            <td className="px-4 py-3">
-                                                <div className="font-medium text-slate-700">{order.customer_name || '—'}</div>
-                                                {order.customer_email && (
-                                                    <div className="text-slate-400 mt-0.5">{order.customer_email}</div>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="space-y-0.5">
-                                                    {items.map((item, i) => (
-                                                        <div key={i} className="text-slate-600">
-                                                            {item.quantity}× {item.name}
-                                                            <span className="text-slate-400 ml-1">${item.price}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 font-semibold text-emerald-600">
-                                                ${Number(order.total_price).toFixed(2)}
-                                            </td>
-                                            <td className="px-4 py-3 text-slate-400 whitespace-nowrap">
-                                                {new Date(order.ordered_at).toLocaleString()}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
-                            <span className="text-xs text-slate-500">
-                                Page {page} of {totalPages}
-                            </span>
-                            <div className="flex items-center gap-1">
-                                <button onClick={() => handlePageChange(1)} disabled={page === 1}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">«</button>
-                                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">‹</button>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-                                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
-                                        if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                                        acc.push(p);
-                                        return acc;
-                                    }, [])
-                                    .map((p, idx) => p === '...' ? (
-                                        <span key={`e-${idx}`} className="px-1 text-xs text-slate-400">…</span>
-                                    ) : (
-                                        <button key={p} onClick={() => handlePageChange(p as number)}
-                                            className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${page === p ? 'bg-slate-800 text-white border-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-                                            {p}
-                                        </button>
-                                    ))}
-                                <button onClick={() => handlePageChange(page + 1)} disabled={page === totalPages}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">›</button>
-                                <button onClick={() => handlePageChange(totalPages)} disabled={page === totalPages}
-                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">»</button>
-                            </div>
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
     );
 }
 
@@ -401,13 +168,19 @@ function StatsCalendar({ userId }: { userId: number }) {
 
     return (
         <div className="w-full bg-white border rounded-xl p-4 shadow-sm">
+            {/* Filter tabs */}
             <div className="flex flex-col gap-3 mb-4 items-center">
                 <div className="flex gap-2">
                     {(['today', 'week', 'month', 'range'] as const).map(f => (
-                        <button key={f} onClick={() => handleFilterChange(f)}
+                        <button
+                            key={f}
+                            onClick={() => handleFilterChange(f)}
                             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                                filter === f ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}>
+                                filter === f
+                                    ? 'bg-slate-800 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                        >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
                         </button>
                     ))}
@@ -417,120 +190,158 @@ function StatsCalendar({ userId }: { userId: number }) {
                     <div className="flex flex-wrap items-center gap-2 justify-center">
                         <div className="flex items-center gap-1.5">
                             <label className="text-xs text-slate-500">From</label>
-                            <input type="date" value={rangeFrom}
+                            <input
+                                type="date"
+                                value={rangeFrom}
                                 onChange={e => { setRangeFrom(e.target.value); setRangeApplied(false); }}
-                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300" />
+                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            />
                         </div>
                         <div className="flex items-center gap-1.5">
                             <label className="text-xs text-slate-500">To</label>
-                            <input type="date" value={rangeTo}
+                            <input
+                                type="date"
+                                value={rangeTo}
                                 onChange={e => { setRangeTo(e.target.value); setRangeApplied(false); }}
-                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300" />
+                                className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            />
                         </div>
-                        <button onClick={() => { if (rangeFrom && rangeTo) setRangeApplied(true); }}
+                        <button
+                            onClick={() => { if (rangeFrom && rangeTo) setRangeApplied(true); }}
                             disabled={!rangeFrom || !rangeTo}
-                            className="px-3 py-1 text-xs bg-slate-800 text-white rounded-full disabled:opacity-40 hover:bg-slate-700 transition-colors">
+                            className="px-3 py-1 text-xs bg-slate-800 text-white rounded-full disabled:opacity-40 hover:bg-slate-700 transition-colors"
+                        >
                             Apply
                         </button>
                     </div>
                 )}
             </div>
 
+            {/* Stats summary */}
             <div className="flex justify-around mb-4 p-3 bg-slate-50 rounded-lg">
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.views ?? 0}</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                        {loading ? '—' : stats?.views ?? 0}
+                    </div>
                     <div className="text-xs text-slate-500 mt-0.5">Views</div>
                 </div>
                 <div className="w-px bg-slate-200" />
                 <div className="text-center">
-                    <div className="text-2xl font-bold text-slate-800">{loading ? '—' : stats?.checkouts ?? 0}</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                        {loading ? '—' : stats?.checkouts ?? 0}
+                    </div>
                     <div className="text-xs text-slate-500 mt-0.5">Checkouts</div>
                 </div>
             </div>
 
-            {/* Range daily breakdown — calendar grid style */}
-            {filter === 'range' && rangeApplied && !loading && stats?.daily && stats.daily.length > 0 && (() => {
-                const grouped = stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
-                    let d = e.date;
-                    if (d.includes('T')) d = d.split('T')[0];
-                    else if (d.includes(' ')) d = d.split(' ')[0];
-                    if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
-                    if (e.type === 'view')     acc[d].views     += e.count;
-                    if (e.type === 'checkout') acc[d].checkouts += e.count;
-                    return acc;
-                }, {});
+            {/* Range daily breakdown */}
+           {/* Range daily breakdown — calendar grid style */}
+{filter === 'range' && rangeApplied && !loading && stats?.daily && stats.daily.length > 0 && (() => {
+    const grouped = stats.daily.reduce<Record<string, { views: number; checkouts: number }>>((acc, e) => {
+        let d = e.date;
+        if (d.includes('T')) d = d.split('T')[0];
+        else if (d.includes(' ')) d = d.split(' ')[0];
+        if (!acc[d]) acc[d] = { views: 0, checkouts: 0 };
+        if (e.type === 'view')     acc[d].views     += e.count;
+        if (e.type === 'checkout') acc[d].checkouts += e.count;
+        return acc;
+    }, {});
 
-                const sorted    = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
-                const firstDate = sorted[0]?.[0];
-                const lastDate  = sorted[sorted.length - 1]?.[0];
-                if (!firstDate || !lastDate) return null;
+    const sorted = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    const today = now.toISOString().split('T')[0];
 
-                const allDays: string[] = [];
-                const cursor = new Date(firstDate + 'T00:00:00');
-                const end    = new Date(lastDate  + 'T00:00:00');
-                while (cursor <= end) {
-                    allDays.push(cursor.toISOString().split('T')[0]);
-                    cursor.setDate(cursor.getDate() + 1);
-                }
+    // Find the first day of the first date to align the grid
+    const firstDate = sorted[0]?.[0];
+    const lastDate  = sorted[sorted.length - 1]?.[0];
 
-                const firstDayOfWeek = new Date(firstDate + 'T00:00:00').getDay();
-                const today = now.toISOString().split('T')[0];
+    if (!firstDate || !lastDate) return null;
 
-                return (
-                    <div className="mt-2">
-                        <div className="grid grid-cols-7 gap-1 text-center">
-                            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-                                <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
-                            ))}
-                            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                                <div key={`empty-${i}`} />
-                            ))}
-                            {allDays.map((dateStr) => {
-                                const data      = grouped[dateStr] || { views: 0, checkouts: 0 };
-                                const hasData   = data.views > 0 || data.checkouts > 0;
-                                const isToday   = dateStr === today;
-                                const dow       = new Date(dateStr + 'T00:00:00').getDay();
-                                const isWeekend = dow === 0 || dow === 6;
-                                const day       = parseInt(dateStr.split('-')[2]);
-                                return (
-                                    <div key={dateStr}
-                                        title={hasData ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : `No activity on ${dateStr}`}
-                                        className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
-                                            isToday ? 'bg-slate-800 text-white font-bold'
-                                            : hasData ? 'bg-green-50 text-green-800'
-                                            : isWeekend ? 'bg-slate-50 text-slate-400'
-                                            : 'text-slate-500'
-                                        }`}>
-                                        <div className={isWeekend && !hasData && !isToday ? 'text-slate-400' : ''}>{day}</div>
-                                        {data.views > 0 && <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>}
-                                        {data.checkouts > 0 && <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>}
-                                    </div>
-                                );
-                            })}
+    // Build a full range of dates from first to last
+    const allDays: string[] = [];
+    const cursor = new Date(firstDate + 'T00:00:00');
+    const end    = new Date(lastDate  + 'T00:00:00');
+    while (cursor <= end) {
+        allDays.push(cursor.toISOString().split('T')[0]);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const firstDayOfWeek = new Date(firstDate + 'T00:00:00').getDay();
+
+    return (
+        <div className="mt-2">
+            <div className="grid grid-cols-7 gap-1 text-center">
+                {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                    <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
+                ))}
+                {/* Leading empty cells */}
+                {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                    <div key={`empty-${i}`} />
+                ))}
+                {allDays.map((dateStr) => {
+                    const data     = grouped[dateStr] || { views: 0, checkouts: 0 };
+                    const hasData  = data.views > 0 || data.checkouts > 0;
+                    const isToday  = dateStr === today;
+                    const dow      = new Date(dateStr + 'T00:00:00').getDay();
+                    const isWeekend = dow === 0 || dow === 6;
+                    const day      = parseInt(dateStr.split('-')[2]);
+
+                    return (
+                        <div
+                            key={dateStr}
+                            title={hasData
+                                ? `Views: ${data.views}, Checkouts: ${data.checkouts}`
+                                : `No activity on ${dateStr}`
+                            }
+                            className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
+                                isToday
+                                    ? 'bg-slate-800 text-white font-bold'
+                                    : hasData
+                                    ? 'bg-green-50 text-green-800'
+                                    : isWeekend
+                                    ? 'bg-slate-50 text-slate-400'
+                                    : 'text-slate-500'
+                            }`}
+                        >
+                            <div className={isWeekend && !hasData && !isToday ? 'text-slate-400' : ''}>{day}</div>
+                            {data.views > 0 && (
+                                <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>
+                            )}
+                            {data.checkouts > 0 && (
+                                <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>
+                            )}
                         </div>
-                        <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
-                            <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
-                            <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
-                        </div>
-                    </div>
-                );
-            })()}
+                    );
+                })}
+            </div>
+            <div className="flex gap-4 justify-center mt-3 text-xs text-slate-500">
+                <span className="flex items-center gap-1"><span className="text-blue-500 font-bold">v</span> = views</span>
+                <span className="flex items-center gap-1"><span className="text-orange-500 font-bold">c</span> = checkouts</span>
+            </div>
+        </div>
+    );
+})()}
 
+            {/* Range — no data message */}
             {filter === 'range' && rangeApplied && !loading && (!stats?.daily || stats.daily.length === 0) && (
                 <div className="text-center text-xs text-slate-400 py-4">No activity for the selected range.</div>
             )}
 
-            {/* Month calendar */}
+            {/* Calendar — only on month view */}
             {filter === 'month' && (
                 <div>
                     <div className="flex items-center justify-between mb-3">
-                        <button onClick={() => setMonthOffset(o => o - 1)}
-                            className="px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                        <button
+                            onClick={() => setMonthOffset(o => o - 1)}
+                            className="px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+                        >
                             ← Prev
                         </button>
                         <h3 className="text-sm font-semibold text-slate-600">{monthName}</h3>
-                        <button onClick={() => setMonthOffset(o => o + 1)} disabled={monthOffset >= 0}
-                            className="px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                        <button
+                            onClick={() => setMonthOffset(o => o + 1)}
+                            disabled={monthOffset >= 0}
+                            className="px-3 py-1 text-xs rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
                             Next →
                         </button>
                     </div>
@@ -539,19 +350,33 @@ function StatsCalendar({ userId }: { userId: number }) {
                         {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
                             <div key={d} className="text-xs text-slate-400 font-medium py-1">{d}</div>
                         ))}
-                        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                        {Array.from({ length: firstDay }).map((_, i) => (
+                            <div key={`empty-${i}`} />
+                        ))}
                         {calendarDays.map(({ day, dateStr, data, isToday, hasData, isWeekend }) => (
-                            <div key={day}
-                                title={hasData ? `Views: ${data.views}, Checkouts: ${data.checkouts}` : `No activity on ${dateStr}`}
+                            <div
+                                key={day}
+                                title={hasData
+                                    ? `Views: ${data.views}, Checkouts: ${data.checkouts}`
+                                    : `No activity on ${dateStr}`
+                                }
                                 className={`relative rounded-lg p-1 text-xs cursor-default transition-colors min-h-[2.5rem] flex flex-col items-center justify-center ${
-                                    isToday ? 'bg-slate-800 text-white font-bold'
-                                    : hasData ? 'bg-green-50 text-green-800'
-                                    : isWeekend ? 'bg-slate-50 text-slate-400'
-                                    : 'text-slate-500'
-                                }`}>
+                                    isToday
+                                        ? 'bg-slate-800 text-white font-bold'
+                                        : hasData
+                                        ? 'bg-green-50 text-green-800'
+                                        : isWeekend
+                                        ? 'bg-slate-50 text-slate-400'
+                                        : 'text-slate-500'
+                                }`}
+                            >
                                 <div className={isWeekend && !hasData && !isToday ? 'text-slate-400' : ''}>{day}</div>
-                                {data.views > 0 && <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>}
-                                {data.checkouts > 0 && <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>}
+                                {data.views > 0 && (
+                                    <div className="text-[9px] leading-tight text-blue-500 font-medium">{data.views}v</div>
+                                )}
+                                {data.checkouts > 0 && (
+                                    <div className="text-[9px] leading-tight text-orange-500 font-medium">{data.checkouts}c</div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -565,6 +390,7 @@ function StatsCalendar({ userId }: { userId: number }) {
     );
 }
 
+
 // ── Geolocation Test (Admin Only) ────────────────────────────────────────
 function GeoTest() {
     const [result, setResult] = useState<string | null>(null);
@@ -572,14 +398,20 @@ function GeoTest() {
     const [loading, setLoading] = useState(false);
 
     const test = () => {
-        setLoading(true); setError(null); setResult(null);
+        setLoading(true);
+        setError(null);
+        setResult(null);
+
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const { latitude, longitude, accuracy } = pos.coords;
                 setResult(`${latitude}, ${longitude} (±${Math.round(accuracy)}m)`);
                 setLoading(false);
             },
-            (err) => { setError(err.message); setLoading(false); },
+            (err) => {
+                setError(err.message);
+                setLoading(false);
+            },
             { enableHighAccuracy: true }
         );
     };
@@ -590,20 +422,33 @@ function GeoTest() {
                 <MapPin className="w-4 h-4 text-slate-500" />
                 <h2 className="text-sm font-semibold text-slate-700">Geolocation Test (Admin)</h2>
             </div>
-            <button onClick={test} disabled={loading}
-                className="px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors">
+
+            <button
+                onClick={test}
+                disabled={loading}
+                className="px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors"
+            >
                 {loading ? 'Requesting...' : 'Get My Precise Location'}
             </button>
+
             {result && (
                 <div className="mt-3 space-y-2">
                     <p className="text-xs text-green-700 bg-green-50 px-3 py-2 rounded-lg font-mono">{result}</p>
-                    <a href={`https://www.google.com/maps?q=${result.split(' (')[0]}`} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                        <MapPin className="w-3 h-3" /> Open in Google Maps
+                    <a
+                        href={`https://www.google.com/maps?q=${result.split(' (')[0]}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                        <MapPin className="w-3 h-3" />
+                        Open in Google Maps
                     </a>
                 </div>
             )}
-            {error && <p className="mt-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+
+            {error && (
+                <p className="mt-3 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+            )}
         </div>
     );
 }
@@ -615,11 +460,15 @@ function VisitorLog() {
     const [page, setPage]       = useState(1);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo]     = useState('');
+
     const PER_PAGE = 30;
 
     useEffect(() => {
         setLoading(true);
-        fetch('/api/visitor-logs', { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'include' })
+        fetch('/api/visitor-logs', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'include',
+        })
             .then(r => r.json())
             .then(data => { setLogs(data); setLoading(false); })
             .catch(() => setLoading(false));
@@ -637,6 +486,8 @@ function VisitorLog() {
     const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
     const paginated  = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
+    const clearFilters = () => { setDateFrom(''); setDateTo(''); };
+
     return (
         <div className="w-full bg-white border rounded-xl shadow-sm overflow-hidden mb-6">
             <div className="px-4 py-3 border-b bg-slate-50 flex flex-wrap items-center gap-3">
@@ -647,19 +498,33 @@ function VisitorLog() {
                 <div className="flex flex-wrap items-center gap-2 ml-auto">
                     <div className="flex items-center gap-1.5">
                         <label className="text-xs text-slate-500 whitespace-nowrap">From</label>
-                        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                            className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300" />
+                        <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={e => setDateFrom(e.target.value)}
+                            className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        />
                     </div>
                     <div className="flex items-center gap-1.5">
                         <label className="text-xs text-slate-500 whitespace-nowrap">To</label>
-                        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                            className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300" />
+                        <input
+                            type="date"
+                            value={dateTo}
+                            onChange={e => setDateTo(e.target.value)}
+                            className="text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        />
                     </div>
                     {(dateFrom || dateTo) && (
-                        <button onClick={() => { setDateFrom(''); setDateTo(''); }}
-                            className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-md hover:bg-red-50 transition-colors">Clear</button>
+                        <button
+                            onClick={clearFilters}
+                            className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                        >
+                            Clear
+                        </button>
                     )}
-                    <span className="text-xs text-slate-400 whitespace-nowrap">{filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}</span>
+                    <span className="text-xs text-slate-400 whitespace-nowrap">
+                        {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
+                    </span>
                 </div>
             </div>
 
@@ -676,11 +541,17 @@ function VisitorLog() {
                             <div key={log.id} className="p-4 space-y-1.5">
                                 <div className="flex items-center justify-between">
                                     <span className="font-mono text-xs font-semibold text-slate-700">{log.ip}</span>
-                                    <span className="text-xs text-slate-400">{new Date(log.created_at).toLocaleString()}</span>
+                                    <span className="text-xs text-slate-400">
+                                        {new Date(log.created_at).toLocaleString()}
+                                    </span>
                                 </div>
                                 {log.lat && log.lon ? (
-                                    <a href={`https://www.google.com/maps?q=${log.lat},${log.lon}`} target="_blank" rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                                    <a
+                                        href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                                    >
                                         <MapPin className="w-3 h-3 shrink-0" />
                                         {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
                                     </a>
@@ -691,16 +562,30 @@ function VisitorLog() {
                                     </div>
                                 )}
                                 {log.precise_lat && log.precise_lon ? (
-                                    <a href={`https://www.google.com/maps?q=${log.precise_lat},${log.precise_lon}`} target="_blank" rel="noopener noreferrer"
-                                        className="flex items-center gap-1 text-xs text-green-600 hover:underline">
+                                    <a
+                                        href={`https://www.google.com/maps?q=${log.precise_lat},${log.precise_lon}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-xs text-green-600 hover:underline"
+                                    >
                                         <MapPin className="w-3 h-3 shrink-0" />
                                         Precise: {parseFloat(String(log.precise_lat)).toFixed(4)}, {parseFloat(String(log.precise_lon)).toFixed(4)}
                                         {log.precise_accuracy && <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>}
                                     </a>
                                 ) : null}
-                                <div className="flex items-center gap-1 text-xs text-slate-500"><Wifi className="w-3 h-3 text-slate-400 shrink-0" />{log.isp || '—'}</div>
-                                <div className="flex items-center gap-1 text-xs text-slate-500"><Clock className="w-3 h-3 text-slate-400 shrink-0" />{log.timezone || '—'}</div>
-                                {log.url && <div className="text-xs text-slate-400 truncate">{new URL(log.url).pathname}</div>}
+                                <div className="flex items-center gap-1 text-xs text-slate-500">
+                                    <Wifi className="w-3 h-3 text-slate-400 shrink-0" />
+                                    {log.isp || '—'}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-slate-500">
+                                    <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                    {log.timezone || '—'}
+                                </div>
+                                {log.url && (
+                                    <div className="text-xs text-slate-400 truncate">
+                                        {new URL(log.url).pathname}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -724,8 +609,12 @@ function VisitorLog() {
                                         <td className="px-4 py-2 font-mono text-slate-700">{log.ip}</td>
                                         <td className="px-4 py-2">
                                             {log.lat && log.lon ? (
-                                                <a href={`https://www.google.com/maps?q=${log.lat},${log.lon}`} target="_blank" rel="noopener noreferrer"
-                                                    className="flex items-center gap-1 text-blue-600 hover:underline">
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${log.lat},${log.lon}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1 text-blue-600 hover:underline"
+                                                >
                                                     <MapPin className="w-3 h-3 shrink-0" />
                                                     {[log.city, log.region, log.country].filter(Boolean).join(', ') || '—'}
                                                 </a>
@@ -738,18 +627,40 @@ function VisitorLog() {
                                         </td>
                                         <td className="px-4 py-2">
                                             {log.precise_lat && log.precise_lon ? (
-                                                <a href={`https://www.google.com/maps?q=${log.precise_lat},${log.precise_lon}`} target="_blank" rel="noopener noreferrer"
-                                                    className="flex items-center gap-1 text-green-600 hover:underline">
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${log.precise_lat},${log.precise_lon}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1 text-green-600 hover:underline"
+                                                >
                                                     <MapPin className="w-3 h-3 shrink-0" />
                                                     {parseFloat(String(log.precise_lat)).toFixed(4)}, {parseFloat(String(log.precise_lon)).toFixed(4)}
-                                                    {log.precise_accuracy && <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>}
+                                                    {log.precise_accuracy && (
+                                                        <span className="text-slate-400 ml-1">(±{log.precise_accuracy}m)</span>
+                                                    )}
                                                 </a>
-                                            ) : <span className="text-slate-400">—</span>}
+                                            ) : (
+                                                <span className="text-slate-400">—</span>
+                                            )}
                                         </td>
-                                        <td className="px-4 py-2"><div className="flex items-center gap-1 text-slate-500"><Wifi className="w-3 h-3 text-slate-400 shrink-0" />{log.isp || '—'}</div></td>
-                                        <td className="px-4 py-2"><div className="flex items-center gap-1 text-slate-500"><Clock className="w-3 h-3 text-slate-400 shrink-0" />{log.timezone || '—'}</div></td>
-                                        <td className="px-4 py-2 text-slate-400 max-w-[180px] truncate" title={log.url ?? ''}>{log.url ? new URL(log.url).pathname : '—'}</td>
-                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">{new Date(log.created_at).toLocaleString()}</td>
+                                        <td className="px-4 py-2">
+                                            <div className="flex items-center gap-1 text-slate-500">
+                                                <Wifi className="w-3 h-3 text-slate-400 shrink-0" />
+                                                {log.isp || '—'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <div className="flex items-center gap-1 text-slate-500">
+                                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                                {log.timezone || '—'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-2 text-slate-400 max-w-[180px] truncate" title={log.url ?? ''}>
+                                            {log.url ? new URL(log.url).pathname : '—'}
+                                        </td>
+                                        <td className="px-4 py-2 text-slate-400 whitespace-nowrap">
+                                            {new Date(log.created_at).toLocaleString()}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -758,13 +669,38 @@ function VisitorLog() {
 
                     {totalPages > 1 && (
                         <div className="flex items-center justify-between px-4 py-3 border-t bg-slate-50">
-                            <span className="text-xs text-slate-500">Page {page} of {totalPages} · showing {((page-1)*PER_PAGE)+1}–{Math.min(page*PER_PAGE, filtered.length)} of {filtered.length}</span>
+                            <span className="text-xs text-slate-500">
+                                Page {page} of {totalPages} &nbsp;·&nbsp; showing {((page - 1) * PER_PAGE) + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
+                            </span>
                             <div className="flex items-center gap-1">
-                                <button onClick={() => setPage(1)} disabled={page===1} className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">«</button>
-                                <button onClick={() => setPage(p=>Math.max(1,p-1))} disabled={page===1} className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">‹</button>
-                                {Array.from({length:totalPages},(_,i)=>i+1).filter(p=>p===1||p===totalPages||Math.abs(p-page)<=1).reduce<(number|string)[]>((acc,p,idx,arr)=>{if(idx>0&&(p as number)-(arr[idx-1] as number)>1)acc.push('...');acc.push(p);return acc;},[]).map((p,idx)=>p==='...'?<span key={`e-${idx}`} className="px-1 text-xs text-slate-400">…</span>:<button key={p} onClick={()=>setPage(p as number)} className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${page===p?'bg-slate-800 text-white border-slate-800':'border-slate-200 text-slate-600 hover:bg-slate-100'}`}>{p}</button>)}
-                                <button onClick={() => setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">›</button>
-                                <button onClick={() => setPage(totalPages)} disabled={page===totalPages} className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">»</button>
+                                <button onClick={() => setPage(1)} disabled={page === 1}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">«</button>
+                                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">‹</button>
+
+                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                                    .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                                        if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                                        acc.push(p);
+                                        return acc;
+                                    }, [])
+                                    .map((p, idx) =>
+                                        p === '...' ? (
+                                            <span key={`ellipsis-${idx}`} className="px-1 text-xs text-slate-400">…</span>
+                                        ) : (
+                                            <button key={p} onClick={() => setPage(p as number)}
+                                                className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                                                    page === p ? 'bg-slate-800 text-white border-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                                                }`}>{p}</button>
+                                        )
+                                    )
+                                }
+
+                                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">›</button>
+                                <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
+                                    className="px-2 py-1 text-xs rounded-md border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">»</button>
                             </div>
                         </div>
                     )}
@@ -776,11 +712,16 @@ function VisitorLog() {
 
 export default function Index() {
     const { products, authUser, flash, createUrl, editUrlBase } = usePage<PageProps>().props;
+
     const isAdmin = authUser.user_type === 'admin';
 
-    const userAlreadyHasProfile = !isAdmin && products.some(
-        (p) => p.user_id === authUser.id && (p.description || p.image1_url || p.price != null),
-    );
+    const userAlreadyHasProfile =
+        !isAdmin &&
+        products.some(
+            (p) =>
+                p.user_id === authUser.id &&
+                (p.description || p.image1_url || p.price != null),
+        );
 
     const myProfile = !isAdmin ? products[0] : null;
 
@@ -807,20 +748,21 @@ export default function Index() {
                         {!isAdmin && myProfile?.subscription && myProfile?.id && (
                             <StatsCalendar userId={myProfile.id} />
                         )}
-
-                        {/* Orders section — only for connected non-admin users */}
-                        {!isAdmin && myProfile?.subscription && (
-                            <OrdersSection />
-                        )}
                     </div>
 
                     {isAdmin ? (
                         <a href={route('register.admin')}>
-                            <Button><Plus className="mr-2 h-4 w-4" />New User / Profile</Button>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                New User / Profile
+                            </Button>
                         </a>
                     ) : !userAlreadyHasProfile ? (
                         <a href={createUrl}>
-                            <Button><Plus className="mr-2 h-4 w-4" />Set Up My Store</Button>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Set Up My Store
+                            </Button>
                         </a>
                     ) : null}
                 </div>
@@ -838,7 +780,9 @@ export default function Index() {
 
                 {products.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                        {isAdmin ? 'No store profiles have been created yet.' : "You haven't set up your store profile yet."}
+                        {isAdmin
+                            ? 'No store profiles have been created yet.'
+                            : "You haven't set up your store profile yet."}
                     </div>
                 ) : (
                     <>
@@ -855,7 +799,8 @@ export default function Index() {
                                         {[1,2,3,4,5,6].map((i) => {
                                             const key = `image${i}_url` as keyof Product;
                                             return product[key] ? (
-                                                <img key={i} src={product[key] as string} alt={`Image ${i}`} className="w-10 h-10 object-cover rounded border shadow-sm" />
+                                                <img key={i} src={product[key] as string} alt={`Image ${i}`}
+                                                    className="w-10 h-10 object-cover rounded border shadow-sm" />
                                             ) : null;
                                         })}
                                         {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
@@ -864,8 +809,12 @@ export default function Index() {
                                     </div>
                                     <div className="space-y-1">
                                         <p className="font-semibold text-sm">{product.name}</p>
-                                        {product.price != null && <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>}
-                                        {product.description && <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>}
+                                        {product.price != null && (
+                                            <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>
+                                        )}
+                                        {product.description && (
+                                            <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                                        )}
                                     </div>
                                     <div className="flex items-center justify-between pt-1">
                                         {product.subscription ? (
@@ -874,8 +823,12 @@ export default function Index() {
                                             <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
                                         )}
                                         <div className="flex gap-2">
-                                            <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
-                                            {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
+                                            <a href={`${editUrlBase}/${product.id}/edit`}>
+                                                <Button size="sm" variant="outline">Edit</Button>
+                                            </a>
+                                            {isAdmin && (
+                                                <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -900,19 +853,22 @@ export default function Index() {
                                     {products.map((product) => (
                                         <TableRow key={product.id}>
                                             {isAdmin && <TableCell className="font-medium">{product.id}</TableCell>}
-                                            {isAdmin && <TableCell className="text-sm">{product.owner_name || `User #${product.user_id}`}</TableCell>}
+                                            {isAdmin && (
+                                                <TableCell className="text-sm">
+                                                    {product.owner_name || `User #${product.user_id}`}
+                                                </TableCell>
+                                            )}
                                             <TableCell>
-                                                <div className="flex gap-1.5 flex-wrap w-full ">
+                                                <div className="flex gap-1.5 flex-wrap max-w-[140px]">
                                                     {[1,2,3,4,5,6].map((i) => {
                                                         const key = `image${i}_url` as keyof Product;
                                                         return product[key] ? (
-                                                            <span className='relative'>
-                                                                <img key={i} src={product[key] as string} alt={`Image ${i}`} className="w-16 h-16 object-cover rounded border shadow-sm" />
-                                                            </span>
+                                                            <img key={i} src={product[key] as string} alt={`Image ${i}`}
+                                                                className="w-10 h-10 object-cover rounded border shadow-sm" />
                                                         ) : null;
                                                     })}
                                                     {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                                        <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
+                                                        <div className="w-10 h-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -920,10 +876,16 @@ export default function Index() {
                                             <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
                                             <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
                                             <TableCell>
-                                                {product.subscription ? <span className="text-green-600 font-medium">✓ Connected</span> : <span className="text-slate-400">✗ Not Connected</span>}
+                                                {product.subscription ? (
+                                                    <span className="text-green-600 font-medium">✓ Connected</span>
+                                                ) : (
+                                                    <span className="text-slate-400">✗ Not Connected</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right space-x-2">
-                                                <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
+                                                <a href={`${editUrlBase}/${product.id}/edit`}>
+                                                    <Button size="sm" variant="outline">Edit</Button>
+                                                </a>
                                                 {isAdmin && <DeleteButton url={`${editUrlBase}/${product.id}`} name={product.name} />}
                                             </TableCell>
                                         </TableRow>
