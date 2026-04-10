@@ -84,7 +84,7 @@ Route::get('/api/store-profile/{id}', function ($id) {
     ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.profile');
 
-// Track profile view
+// Track profile view — now accepts image_index
 Route::post('/api/store-profile/{id}/view', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
@@ -98,7 +98,7 @@ Route::post('/api/store-profile/{id}/view', function ($id, Request $request) {
     DB::table('profile_events')->insert([
         'user_id'     => $user->id,
         'type'        => 'view',
-        'image_index' => $request->input('image_index'),
+        'image_index' => $request->input('image_index') ?? null,
         'created_at'  => now(),
         'updated_at'  => now(),
     ]);
@@ -108,7 +108,7 @@ Route::post('/api/store-profile/{id}/view', function ($id, Request $request) {
 });
 
 // Track checkout click
-Route::post('/api/store-profile/{id}/checkout', function ($id, Request $request) {
+Route::post('/api/store-profile/{id}/checkout', function ($id) {
     $user = User::findOrFail($id);
 
     if (!$user->subscription) {
@@ -119,18 +119,17 @@ Route::post('/api/store-profile/{id}/checkout', function ($id, Request $request)
     $user->increment('profile_checkouts');
 
     DB::table('profile_events')->insert([
-        'user_id'     => $user->id,
-        'type'        => 'checkout',
-        'image_index' => $request->input('image_index'),
-        'created_at'  => now(),
-        'updated_at'  => now(),
+        'user_id'    => $user->id,
+        'type'       => 'checkout',
+        'created_at' => now(),
+        'updated_at' => now(),
     ]);
 
     return response()->json(['checkouts' => $user->profile_checkouts])
         ->header('Access-Control-Allow-Origin', '*');
 });
 
-// Get filtered stats + calendar data
+// Get filtered stats + calendar data + per-image daily views
 Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
     $user = User::findOrFail($id);
 
@@ -175,22 +174,23 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
             return $item;
         });
 
-    // Per-image views for TODAY — used by dashboard image badges (resets every 24h)
-    $perImageTodayViews = DB::table('profile_events')
+    // Per-image view counts for today only (for badge display)
+    $imageViews = DB::table('profile_events')
         ->where('user_id', $user->id)
         ->where('type', 'view')
         ->whereDate('created_at', today())
         ->whereNotNull('image_index')
         ->selectRaw('image_index, COUNT(*) as count')
         ->groupBy('image_index')
+        ->get()
         ->pluck('count', 'image_index');
 
     return response()->json([
-        'views'                 => $views,
-        'checkouts'             => $checkouts,
-        'daily'                 => $daily,
-        'filter'                => $filter,
-        'per_image_today_views' => $perImageTodayViews,
+        'views'       => $views,
+        'checkouts'   => $checkouts,
+        'daily'       => $daily,
+        'filter'      => $filter,
+        'image_views' => $imageViews,
     ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.stats');
 
@@ -199,7 +199,6 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
 // ─────────────────────────────────────────────
 Route::post('/api/webhooks/shopify/orders', function (Request $request) {
 
-    // 1. Verify HMAC signature from Shopify
     $secret   = env('SHOPIFY_WEBHOOK_SECRET');
     $hmac     = $request->header('X-Shopify-Hmac-Sha256');
     $body     = $request->getContent();
@@ -211,12 +210,10 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
 
     $order = $request->json()->all();
 
-    // 2. Extract utm_user — check cart attributes first (most reliable),
-    //    then fall back to landing_site URL params
     $landingSite = $order['landing_site'] ?? null;
     $userId      = null;
 
-    // Primary: cart attributes (set by cc-app.liquid before checkout)
+    // Primary: cart attributes
     $cartAttributes = $order['cart_attributes'] ?? $order['note_attributes'] ?? [];
     foreach ($cartAttributes as $attr) {
         if (($attr['name'] ?? '') === 'utm_user' && !empty($attr['value'])) {
@@ -238,32 +235,27 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
         return response()->json(['ok' => true, 'skipped' => 'no utm_user']);
     }
 
-    // 3. Verify user exists and is subscribed
     $user = User::find($userId);
     if (!$user || !$user->subscription) {
         return response()->json(['ok' => true, 'skipped' => 'user not found or not subscribed']);
     }
 
-    // 4. Prevent duplicates
     $shopifyOrderId = (string) ($order['id'] ?? '');
     if (DB::table('shopify_orders')->where('shopify_order_id', $shopifyOrderId)->exists()) {
         return response()->json(['ok' => true, 'skipped' => 'duplicate']);
     }
 
-    // 5. Customer info
     $firstName     = $order['billing_address']['first_name'] ?? $order['customer']['first_name'] ?? '';
     $lastName      = $order['billing_address']['last_name']  ?? $order['customer']['last_name']  ?? '';
     $customerName  = trim("$firstName $lastName") ?: null;
     $customerEmail = $order['email'] ?? $order['customer']['email'] ?? null;
 
-    // 6. Line items
     $lineItems = collect($order['line_items'] ?? [])->map(fn($item) => [
         'name'     => $item['name']     ?? '',
         'quantity' => $item['quantity'] ?? 1,
         'price'    => $item['price']    ?? '0.00',
     ])->values()->all();
 
-    // 7. Save
     DB::table('shopify_orders')->insert([
         'user_id'          => $userId,
         'shopify_order_id' => $shopifyOrderId,
