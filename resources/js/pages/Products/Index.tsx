@@ -147,7 +147,8 @@ function OrdersSection() {
     const totalPages = data?.orders?.last_page ?? 1;
 
     return (
-        <div className="w-full bg-white border rounded-xl shadow-sm overflow-hidden mb-6">
+        // hide sales for now
+        <div className="hidden w-full bg-white border rounded-xl shadow-sm overflow-hidden mb-6">
             {/* Header */}
             <div className="px-4 py-3 border-b bg-slate-50 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
