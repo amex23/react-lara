@@ -9,6 +9,7 @@ use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AdminRegisterController;
+use App\Http\Controllers\LemonSqueezyController;
 use App\Models\User;
 use App\Models\VisitorLog;
 
@@ -43,6 +44,29 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/register-admin', [AdminRegisterController::class, 'create'])->name('register.admin');
     Route::post('/register-admin', [AdminRegisterController::class, 'store'])->name('register.admin.store');
 });
+
+// ─────────────────────────────────────────────
+// Lemon Squeezy
+// ─────────────────────────────────────────────
+
+// Redirect user to Lemon Squeezy checkout (pre-filled with their email)
+Route::middleware('auth')->get('/subscribe', function () {
+    $user = auth()->user();
+    $base = env('LEMONSQUEEZY_STORE_URL');
+    $url  = $base
+        . '?checkout[email]=' . urlencode($user->email)
+        . '&checkout[name]='  . urlencode($user->name);
+    return redirect()->away($url);
+})->name('subscribe');
+
+// After successful payment, redirect back to dashboard
+Route::middleware('auth')->get('/subscribe/success', function () {
+    return redirect()->route('dashboard')->with('message', 'Subscription activated! Your store is now live.');
+})->name('subscribe.success');
+
+// Webhook — no auth, no CSRF (covered by signature verification inside controller)
+Route::post('/api/webhooks/lemonsqueezy', [LemonSqueezyController::class, 'webhook'])
+    ->name('webhooks.lemonsqueezy');
 
 // ─────────────────────────────────────────────
 // Public API — no auth, called by Shopify
@@ -173,7 +197,6 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
             return $item;
         });
 
-    // Per-image view counts for today (for badge display on dashboard)
     $imageViews = DB::table('profile_events')
         ->where('user_id', $user->id)
         ->where('type', 'view')
@@ -212,7 +235,6 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
     $landingSite = $order['landing_site'] ?? null;
     $userId      = null;
 
-    // Primary: cart attributes
     $cartAttributes = $order['cart_attributes'] ?? $order['note_attributes'] ?? [];
     foreach ($cartAttributes as $attr) {
         if (($attr['name'] ?? '') === 'utm_user' && !empty($attr['value'])) {
@@ -221,7 +243,6 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
         }
     }
 
-    // Fallback: landing_site URL
     if (!$userId && $landingSite && $landingSite !== '/') {
         $qs = [];
         parse_str(parse_url($landingSite, PHP_URL_QUERY) ?? '', $qs);

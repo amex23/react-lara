@@ -13,11 +13,6 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -33,14 +28,16 @@ class User extends Authenticatable
         'profile_checkouts',
         'checkout_url1', 'checkout_url2', 'checkout_url3',
         'checkout_url4', 'checkout_url5', 'checkout_url6',
-        'default_checkout_url', // ← per-user fallback checkout URL
+        'default_checkout_url',
+        // Lemon Squeezy
+        'ls_subscription_id',
+        'ls_customer_id',
+        'ls_variant_id',
+        'ls_status',
+        'ls_renews_at',
+        'ls_ends_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'two_factor_secret',
@@ -48,17 +45,14 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'two_factor_confirmed_at' => 'datetime',
+            'email_verified_at'      => 'datetime',
+            'password'               => 'hashed',
+            'two_factor_confirmed_at'=> 'datetime',
+            'ls_renews_at'           => 'datetime',
+            'ls_ends_at'             => 'datetime',
         ];
     }
 }

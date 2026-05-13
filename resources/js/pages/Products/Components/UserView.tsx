@@ -12,6 +12,7 @@ import {
 import StatsCalendar from './UserView/StatsCalendar';
 import OrdersSection from './UserView/OrdersSection';
 import ImageWithBadge from './UserView/ImageWithBadge';
+import SubscribeButton from '@/components/SubscribeButton';
 
 interface Product {
     id: number;
@@ -58,7 +59,6 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
             .catch(() => {});
     }, [myProfile?.id, myProfile?.subscription]);
 
-    // Fetch checkouts + orders for conversion rate based on date filters
     useEffect(() => {
         if (!myProfile?.id || !myProfile?.subscription) { setConvLoading(false); return; }
 
@@ -80,9 +80,13 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
 
     return (
         <>
+            {/* Not subscribed — show subscribe CTA */}
             {!myProfile?.subscription && (
-                <div className="mb-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 text-center">
-                    Your store is not connected to Shopify. Contact your admin to activate.
+                <div className="mb-2 p-5 bg-yellow-50 border border-yellow-200 rounded-xl text-center flex flex-col items-center gap-3">
+                    <p className="text-sm font-medium text-yellow-800">
+                        Your store is not active yet. Subscribe to unlock your storefront.
+                    </p>
+                    <SubscribeButton />
                 </div>
             )}
 
@@ -135,7 +139,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                 </div>
             )}
 
-            {/* 2. My Images table */}
+            {/* 3. My Images table */}
             {products.length > 0 && (
                 <>
                     {/* Mobile cards */}
@@ -216,7 +220,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                 </>
             )}
 
-            {/* 3. Orders section */}
+            {/* 4. Orders section */}
             {myProfile?.subscription && (
                 <OrdersSection />
             )}
