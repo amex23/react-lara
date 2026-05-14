@@ -169,7 +169,14 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     ) : (
                                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
                                     )}
-                                    <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
+                                    <div className="flex gap-2">
+                                        <a href="/subscribe">
+                                            <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
+                                                ⚡ Subscribe
+                                            </Button>
+                                        </a>
+                                        <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -210,6 +217,11 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                         <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
                                         <TableCell>{product.subscription ? <span className="text-green-600 font-medium">✓ Connected</span> : <span className="text-slate-400">✗ Not Connected</span>}</TableCell>
                                         <TableCell className="text-right space-x-2">
+                                            <a href="/subscribe">
+                                                <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
+                                                    ⚡ Subscribe
+                                                </Button>
+                                            </a>
                                             <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
                                         </TableCell>
                                     </TableRow>
@@ -219,6 +231,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                     </div>
                 </>
             )}
+            
 
             {/* 4. Orders section */}
             {myProfile?.subscription && (
