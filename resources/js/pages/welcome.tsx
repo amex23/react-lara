@@ -246,7 +246,7 @@ export default function Welcome({
                             <a className='text-sm lg:text-lg text-center' href="/refund-policy"> ● &nbsp;Refund Policy</a> 
                         </div>
 
-                        <div className="pt-3 flex flex-row gap-3 md:mt-0 block text-center justify-center">
+                        <div className="pt-3 flex flex-row gap-3 md:mt-0 block text-center justify-center items-center">
                             <span className='hidden md:block'>ⓒ Copyright 2026 </span> <a className='text-sm lg:text-lg' href="/contact-us">● &nbsp;Contact Us</a>
                             <span className='hidden md:block'>● &nbsp; Made with ❤️ </span>
                             <span className='block md:hidden text-sm lg:text-md'>&nbsp; Made with ❤️</span>
