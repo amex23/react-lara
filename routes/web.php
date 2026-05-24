@@ -324,6 +324,9 @@ Route::middleware('auth')->get('/api/orders', function (Request $request) {
 // Contact
 // ─────────────────────────────────────────────
 Route::get('/contact-us', [\App\Http\Controllers\ContactController::class, 'index'])->name('contact-us');
+Route::get('/terms-of-service', fn() => inertia('terms-of-service'))->name('terms-of-service');
+Route::get('/privacy-policy', fn() => inertia('privacy-policy'))->name('privacy-policy');
+Route::get('/refund-policy', fn() => inertia('refund-policy'))->name('refund-policy');
 Route::post('/contact-us', [\App\Http\Controllers\ContactController::class, 'send'])->name('contact-us.send');
 
 // ─────────────────────────────────────────────

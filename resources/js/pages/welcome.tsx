@@ -237,12 +237,24 @@ export default function Welcome({
 
                     <div className="text-md md:text-xl text-center md:text-start flex gap-1 items-center"><b>20%</b> of Profit goes to <a href="https://www.worldvision.org.ph/"><b>WorldVision</b></a> Charity <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#37B6FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/></svg></div>
 
-                    <div className="mt-3 flex flex-row gap-3 md:mt-0 block text-center">
-                        <span className='hidden md:block'>ⓒ Copyright 2026 |</span> <a href="/contact-us">Contact Us</a>
-                        <span className='hidden md:block'>| &nbsp; Made with ❤️ </span>
-                        <span className='block md:hidden'>&nbsp; Made with ❤️</span>
+
+                    <div className='mt-7'>
+                        <div className="flex w-full justify-center gap-3">
+                            <a className='text-sm lg:text-lg text-center' href="/privacy-policy"> 
+                            ● &nbsp;Privacy Policy</a>
+                            <a className='text-sm lg:text-lg text-center' href="/terms-of-service"> ● &nbsp;Terms of Service</a>
+                            <a className='text-sm lg:text-lg text-center' href="/refund-policy"> ● &nbsp;Refund Policy</a> 
+                        </div>
+
+                        <div className="pt-3 flex flex-row gap-3 md:mt-0 block text-center justify-center">
+                            <span className='hidden md:block'>ⓒ Copyright 2026 </span> <a className='text-sm lg:text-lg' href="/contact-us">● &nbsp;Contact Us</a>
+                            <span className='hidden md:block'>● &nbsp; Made with ❤️ </span>
+                            <span className='block md:hidden text-sm lg:text-md'>&nbsp; Made with ❤️</span>
+                        </div>
                     </div>
-                    <span className='block md:hidden'>ⓒ Copyright 2026</span>
+
+
+                    <span className='block md:hidden text-sm lg:text-md'>ⓒ Copyright 2026</span>
                 </div>
             </div>
 
