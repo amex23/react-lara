@@ -328,6 +328,7 @@ Route::get('/terms-of-service', fn() => inertia('terms-of-service'))->name('term
 Route::get('/privacy-policy', fn() => inertia('privacy-policy'))->name('privacy-policy');
 Route::get('/refund-policy', fn() => inertia('refund-policy'))->name('refund-policy');
 Route::post('/contact-us', [\App\Http\Controllers\ContactController::class, 'send'])->name('contact-us.send');
+Route::get('/pricing', fn() => inertia('pricing'))->name('pricing');
 
 // ─────────────────────────────────────────────
 // Visitor logs

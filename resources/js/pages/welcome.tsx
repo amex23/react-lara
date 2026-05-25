@@ -248,9 +248,13 @@ export default function Welcome({
 
                         <div className="pt-3 flex flex-row gap-3 md:mt-0 block text-center justify-center items-center">
                             <a className='text-sm lg:text-[15px]' href="/contact-us">● &nbsp;Contact Us</a>
-                            <span className='hidden md:block text-sm lg:text-[15px]'>ⓒ Copyright 2026 </span> 
+                            <a className='text-sm lg:text-[15px]' href="/pricing">● &nbsp;Pricing Plan</a>
                             <span className='hidden md:block text-sm lg:text-[15px]'>● &nbsp; Made with ❤️ </span>
                             <span className='block md:hidden text-sm lg:text-[15px]'>&nbsp; Made with ❤️</span>
+                        </div>
+
+                        <div className="pt-3 flex flex-row gap-3 md:mt-0 block text-center justify-center items-center">                        
+                            <span className='hidden md:block text-sm lg:text-[15px]'>ⓒ Copyright 2026 </span>                        
                         </div>
                     </div>
 
