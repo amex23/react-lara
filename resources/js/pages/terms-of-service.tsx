@@ -21,7 +21,7 @@ export default function TermsOfService() {
                 </div>
 
                 {/* Content */}
-                <div className="max-w-4xl mx-auto px-6 py-12">
+                <div className="max-w-4xl mx-auto px-6 py-0 lg:py-12">
                     <h1 className="text-4xl font-bold text-gray-900 mb-2">Terms of Service</h1>
                     <p className="text-gray-500 mb-10">Effective Date: May 20, 2026</p>
 
@@ -135,10 +135,13 @@ export default function TermsOfService() {
                     </div>
 
                     {/* Footer links */}
-                    <div className="mt-8 flex gap-6 text-sm text-gray-500 justify-center">
-                        <Link href="/privacy-policy" className="hover:text-blue-600">Privacy Policy</Link>
-                        <Link href="/refund-policy" className="hover:text-blue-600">Refund Policy</Link>
-                        <Link href="/contact-us" className="hover:text-blue-600">Contact Us</Link>
+                    <div className="px-5 lg:px-0 bg-gray-50 py-6 border-t">
+                        <div className="flex gap-6 text-sm text-gray-400 justify-center">
+                            <Link href="/terms-of-service" className="hover:text-blue-500">Terms of Service</Link>
+                            <Link href="/privacy-policy" className="hover:text-blue-500">Privacy Policy</Link>
+                            <Link href="/refund-policy" className="hover:text-blue-500">Refund Policy</Link>
+                            <Link href="/contact-us" className="hover:text-blue-500">Contact Us</Link>
+                        </div>
                     </div>
                 </div>
             </div>
