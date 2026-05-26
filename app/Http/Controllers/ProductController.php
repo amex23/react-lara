@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
-    // ─────────────────────────────────────────────
-    // LIST
-    // ─────────────────────────────────────────────
     public function index()
     {
         $authUser = Auth::user();
@@ -33,9 +30,6 @@ class ProductController extends Controller
         ]);
     }
 
-    // ─────────────────────────────────────────────
-    // CREATE FORM
-    // ─────────────────────────────────────────────
     public function create()
     {
         $authUser = Auth::user();
@@ -54,9 +48,6 @@ class ProductController extends Controller
         ]);
     }
 
-    // ─────────────────────────────────────────────
-    // STORE
-    // ─────────────────────────────────────────────
     public function store(Request $request)
     {
         $authUser = Auth::user();
@@ -119,9 +110,6 @@ class ProductController extends Controller
             ->with('message', 'Store profile created successfully.');
     }
 
-    // ─────────────────────────────────────────────
-    // EDIT FORM
-    // ─────────────────────────────────────────────
     public function edit(User $product)
     {
         $this->authorizeAccess($product);
@@ -138,9 +126,6 @@ class ProductController extends Controller
         ]);
     }
 
-    // ─────────────────────────────────────────────
-    // UPDATE
-    // ─────────────────────────────────────────────
     public function update(Request $request, User $product)
     {
         $this->authorizeAccess($product);
@@ -194,9 +179,6 @@ class ProductController extends Controller
             ->with('message', 'Store profile updated successfully.');
     }
 
-    // ─────────────────────────────────────────────
-    // DELETE
-    // ─────────────────────────────────────────────
     public function destroy(User $product)
     {
         $this->authorizeAccess($product);
@@ -229,10 +211,6 @@ class ProductController extends Controller
         return redirect()->route($this->indexRoute())
             ->with('message', 'Store profile cleared successfully.');
     }
-
-    // ─────────────────────────────────────────────
-    // HELPERS
-    // ─────────────────────────────────────────────
 
     private function indexRoute(): string
     {
@@ -272,6 +250,8 @@ class ProductController extends Controller
             'description'          => $user->description,
             'price'                => $user->price,
             'subscription'         => (bool) $user->subscription,
+            'ls_status'            => $user->ls_status,
+            'ls_subscription_id'   => $user->ls_subscription_id,
             'profile_views'        => (int) ($user->profile_views ?? 0),
             'profile_checkouts'    => (int) ($user->profile_checkouts ?? 0),
             'image1_url'           => $user->image1 ? Storage::url($user->image1) : null,

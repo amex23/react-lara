@@ -22,6 +22,8 @@ interface Product {
     description?: string | null;
     price?: string | number | null;
     subscription?: boolean;
+    ls_status?: string | null;
+    ls_subscription_id?: string | null;
     image1_url?: string | null;
     image2_url?: string | null;
     image3_url?: string | null;
@@ -77,6 +79,14 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
     }, [myProfile?.id, myProfile?.subscription, convFrom, convTo]);
 
     const conversionRate = monthCheckouts > 0 ? ((monthOrders / monthCheckouts) * 100) : 0;
+
+    const isActiveSubscriber = (product: Product) => product.ls_status === 'active';
+
+    const handleCancel = (e: React.MouseEvent) => {
+        if (!confirm('Are you sure you want to cancel your subscription? Your store will remain active until the end of the billing period.')) {
+            e.preventDefault();
+        }
+    };
 
     return (
         <>
@@ -169,12 +179,25 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     ) : (
                                         <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
                                     )}
-                                    <div className="flex gap-2">
-                                        <a href="/subscribe">
-                                            <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
-                                                ⚡ Subscribe
-                                            </Button>
-                                        </a>
+                                    <div className="flex gap-2 items-center">
+                                        {isActiveSubscriber(product) ? (
+                                            <>
+                                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
+                                                    ✓ Subscribed
+                                                </span>
+                                                <a href="/subscribe/cancel" onClick={handleCancel}>
+                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50">
+                                                        Cancel
+                                                    </Button>
+                                                </a>
+                                            </>
+                                        ) : (
+                                            <a href="/subscribe">
+                                                <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
+                                                    ⚡ Subscribe
+                                                </Button>
+                                            </a>
+                                        )}
                                         <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
                                     </div>
                                 </div>
@@ -192,7 +215,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     <TableHead>Price</TableHead>
                                     <TableHead>Description</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right w-36">Actions</TableHead>
+                                    <TableHead className="text-right w-56">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -215,14 +238,36 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
                                         <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
-                                        <TableCell>{product.subscription ? <span className="text-green-600 font-medium">✓ Connected</span> : <span className="text-slate-400">✗ Not Connected</span>}</TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <a href="/subscribe">
-                                                <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
-                                                    ⚡ Subscribe
-                                                </Button>
-                                            </a>
-                                            <a href={`${editUrlBase}/${product.id}/edit`}><Button size="sm" variant="outline">Edit</Button></a>
+                                        <TableCell>
+                                            {product.subscription
+                                                ? <span className="text-green-600 font-medium">✓ Connected</span>
+                                                : <span className="text-slate-400">✗ Not Connected</span>
+                                            }
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {isActiveSubscriber(product) ? (
+                                                    <>
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg whitespace-nowrap">
+                                                            ✓ Subscribed
+                                                        </span>
+                                                        <a href="/subscribe/cancel" onClick={handleCancel}>
+                                                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap">
+                                                                Cancel
+                                                            </Button>
+                                                        </a>
+                                                    </>
+                                                ) : (
+                                                    <a href="/subscribe">
+                                                        <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold whitespace-nowrap">
+                                                            ⚡ Subscribe
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                                <a href={`${editUrlBase}/${product.id}/edit`}>
+                                                    <Button size="sm" variant="outline">Edit</Button>
+                                                </a>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -231,7 +276,6 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                     </div>
                 </>
             )}
-            
 
             {/* 4. Orders section */}
             {myProfile?.subscription && (
