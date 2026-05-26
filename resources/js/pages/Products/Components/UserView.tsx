@@ -247,7 +247,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 {isActiveSubscriber(product) ? (
-                                                    <>
+                                                    <div className="flex">
                                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg whitespace-nowrap">
                                                             ✓ Subscribed
                                                         </span>
@@ -256,7 +256,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                                 Cancel Subscription
                                                             </Button>
                                                         </a>
-                                                    </>
+                                                    </div>
                                                 ) : (
                                                     <a href="/subscribe">
                                                         <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold whitespace-nowrap">
