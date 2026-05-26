@@ -238,21 +238,16 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
                                         <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
+                                        
                                         <TableCell>
-                                            {product.subscription
-                                                ? <span className="text-green-600 font-medium">✓ Connected</span>
-                                                : <span className="text-slate-400">✗ Not Connected</span>
-                                            }
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {isActiveSubscriber(product) ? (
-                                                    <div className="flex">
+                                            
+                                            {isActiveSubscriber(product) ? (
+                                                    <div className="flex flex items-start">
                                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg whitespace-nowrap">
                                                             ✓ Subscribed
                                                         </span>
                                                         <a href="/subscribe/cancel" onClick={handleCancel}>
-                                                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap">
+                                                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap text-xs">
                                                                 Cancel Subscription
                                                             </Button>
                                                         </a>
@@ -263,7 +258,18 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                             ⚡ Subscribe
                                                         </Button>
                                                     </a>
-                                                )}
+                                             )}
+
+                                        </TableCell>
+                                        
+                                        <TableCell className="text-right">
+                                            <div className="flex items-center justify-between gap-2">
+
+                                                {product.subscription
+                                                ? <span className="text-green-600 font-medium">✓ Connected</span>
+                                                : <span className="text-slate-400">✗ Not Connected</span>
+                                            }
+                                                
                                                 <a href={`${editUrlBase}/${product.id}/edit`}>
                                                     <Button size="sm" variant="outline">Edit</Button>
                                                 </a>
