@@ -242,8 +242,8 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                         <TableCell>
                                             
                                             {isActiveSubscriber(product) ? (
-                                                    <div className="flex flex items-start gap-1">
-                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-1.5 rounded-lg whitespace-nowrap">
+                                                    <div className="flex flex items-center gap-1">
+                                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-2 rounded-lg whitespace-nowrap">
                                                             ✓ Subscribed
                                                         </span>
                                                         <a href="/subscribe/cancel" onClick={handleCancel}>
