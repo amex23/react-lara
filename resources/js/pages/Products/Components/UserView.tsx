@@ -253,7 +253,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                         </span>
                                                         <a href="/subscribe/cancel" onClick={handleCancel}>
                                                             <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap">
-                                                                Cancel
+                                                                Cancel Subscription
                                                             </Button>
                                                         </a>
                                                     </>
