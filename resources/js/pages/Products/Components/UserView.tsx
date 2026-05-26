@@ -181,16 +181,16 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     )}
                                     <div className="flex gap-2 items-center">
                                         {isActiveSubscriber(product) ? (
-                                            <>
+                                            <div className="flex items-center gap-x-1">
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
                                                     ✓ Subscribed
                                                 </span>
                                                 <a href="/subscribe/cancel" onClick={handleCancel}>
-                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50">
+                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs">
                                                         Cancel Subscription
                                                     </Button>
                                                 </a>
-                                            </>
+                                            </div>
                                         ) : (
                                             <a href="/subscribe">
                                                 <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
