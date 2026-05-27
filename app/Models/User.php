@@ -24,6 +24,9 @@ class User extends Authenticatable
         'image1','image2','image3','image4','image5','image6',
         'subscription',
         'shopify_customer_id',
+        'shopify_webhook_secret',
+        'woocommerce_webhook_secret',
+        'store_platform',
         'profile_views',
         'profile_checkouts',
         'checkout_url1', 'checkout_url2', 'checkout_url3',
@@ -43,6 +46,8 @@ class User extends Authenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
         'remember_token',
+        'shopify_webhook_secret',       // never expose to frontend
+        'woocommerce_webhook_secret',    // never expose to frontend
     ];
 
     protected function casts(): array

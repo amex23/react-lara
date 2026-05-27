@@ -78,7 +78,10 @@ class ProductController extends Controller
             'checkout_url4'        => 'nullable|url|max:500',
             'checkout_url5'        => 'nullable|url|max:500',
             'checkout_url6'        => 'nullable|url|max:500',
-            'default_checkout_url' => 'nullable|url|max:500',
+            'default_checkout_url'       => 'nullable|url|max:500',
+            'shopify_webhook_secret'     => 'nullable|string|max:255',
+            'woocommerce_webhook_secret' => 'nullable|string|max:255',
+            'store_platform'             => 'nullable|in:shopify,woocommerce',
         ]);
 
         $updates = [
@@ -92,7 +95,10 @@ class ProductController extends Controller
             'checkout_url4'        => $validated['checkout_url4'] ?? null,
             'checkout_url5'        => $validated['checkout_url5'] ?? null,
             'checkout_url6'        => $validated['checkout_url6'] ?? null,
-            'default_checkout_url' => $validated['default_checkout_url'] ?? null,
+            'default_checkout_url'       => $validated['default_checkout_url'] ?? null,
+            'shopify_webhook_secret'     => $validated['shopify_webhook_secret'] ?? null,
+            'woocommerce_webhook_secret' => $validated['woocommerce_webhook_secret'] ?? null,
+            'store_platform'             => $validated['store_platform'] ?? null,
         ];
 
         foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
@@ -147,7 +153,10 @@ class ProductController extends Controller
             'checkout_url4'        => 'nullable|url|max:500',
             'checkout_url5'        => 'nullable|url|max:500',
             'checkout_url6'        => 'nullable|url|max:500',
-            'default_checkout_url' => 'nullable|url|max:500',
+            'default_checkout_url'       => 'nullable|url|max:500',
+            'shopify_webhook_secret'     => 'nullable|string|max:255',
+            'woocommerce_webhook_secret' => 'nullable|string|max:255',
+            'store_platform'             => 'nullable|in:shopify,woocommerce',
         ]);
 
         $updates = [
@@ -161,7 +170,10 @@ class ProductController extends Controller
             'checkout_url4'        => $validated['checkout_url4'] ?? null,
             'checkout_url5'        => $validated['checkout_url5'] ?? null,
             'checkout_url6'        => $validated['checkout_url6'] ?? null,
-            'default_checkout_url' => $validated['default_checkout_url'] ?? null,
+            'default_checkout_url'       => $validated['default_checkout_url'] ?? null,
+            'shopify_webhook_secret'     => $validated['shopify_webhook_secret'] ?? null,
+            'woocommerce_webhook_secret' => $validated['woocommerce_webhook_secret'] ?? null,
+            'store_platform'             => $validated['store_platform'] ?? null,
         ];
 
         foreach (['image1', 'image2', 'image3', 'image4', 'image5', 'image6'] as $key) {
@@ -251,6 +263,9 @@ class ProductController extends Controller
             'price'                => $user->price,
             'subscription'         => (bool) $user->subscription,
             'ls_status'            => $user->ls_status,
+            'store_platform'             => $user->store_platform,
+            'has_shopify_secret'         => !empty($user->shopify_webhook_secret),
+            'has_woocommerce_secret'     => !empty($user->woocommerce_webhook_secret),
             'ls_subscription_id'   => $user->ls_subscription_id,
             'profile_views'        => (int) ($user->profile_views ?? 0),
             'profile_checkouts'    => (int) ($user->profile_checkouts ?? 0),

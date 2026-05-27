@@ -239,17 +239,11 @@ Route::get('/api/store-profile/{id}/stats', function ($id, Request $request) {
 // ─────────────────────────────────────────────
 Route::post('/api/webhooks/shopify/orders', function (Request $request) {
 
-    $secret   = env('SHOPIFY_WEBHOOK_SECRET');
-    $hmac     = $request->header('X-Shopify-Hmac-Sha256');
-    $body     = $request->getContent();
-    $computed = base64_encode(hash_hmac('sha256', $body, $secret, true));
+    $hmac = $request->header('X-Shopify-Hmac-Sha256');
+    $body = $request->getContent();
 
-    if (!hash_equals($computed, $hmac ?? '')) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-
-    $order = $request->json()->all();
-
+    // Step 1: Extract utm_user to find the seller
+    $order       = $request->json()->all();
     $landingSite = $order['landing_site'] ?? null;
     $userId      = null;
 
@@ -278,6 +272,17 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
         return response()->json(['ok' => true, 'skipped' => 'user not found or not subscribed']);
     }
 
+    // Step 2: Verify HMAC using seller's own secret (fallback to global env)
+    $secret = $user->shopify_webhook_secret ?: env('SHOPIFY_WEBHOOK_SECRET');
+    if (!$secret) {
+        return response()->json(['error' => 'No webhook secret configured'], 400);
+    }
+
+    $computed = base64_encode(hash_hmac('sha256', $body, $secret, true));
+    if (!hash_equals($computed, $hmac ?? '')) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
     $shopifyOrderId = (string) ($order['id'] ?? '');
     if (DB::table('shopify_orders')->where('shopify_order_id', $shopifyOrderId)->exists()) {
         return response()->json(['ok' => true, 'skipped' => 'duplicate']);
@@ -296,7 +301,7 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
 
     DB::table('shopify_orders')->insert([
         'user_id'          => $userId,
-        'shopify_order_id' => $shopifyOrderId,
+        'shopify_order_id' => (string) ($order['id'] ?? ''),
         'customer_name'    => $customerName,
         'customer_email'   => $customerEmail,
         'total_price'      => (float) ($order['total_price'] ?? 0),
@@ -304,6 +309,90 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
         'landing_site'     => $landingSite,
         'ordered_at'       => isset($order['created_at'])
                                 ? \Carbon\Carbon::parse($order['created_at'])->toDateTimeString()
+                                : now(),
+        'created_at'       => now(),
+        'updated_at'       => now(),
+    ]);
+
+    return response()->json(['ok' => true]);
+});
+
+// ─────────────────────────────────────────────
+// WooCommerce Orders Webhook
+// ─────────────────────────────────────────────
+Route::post('/api/webhooks/woocommerce/orders', function (Request $request) {
+
+    $signature = $request->header('X-WC-Webhook-Signature');
+    $body      = $request->getContent();
+
+    // Step 1: Extract utm_user from metadata or query string
+    $order   = $request->json()->all();
+    $userId  = null;
+
+    // Check order meta_data for utm_user
+    foreach ($order['meta_data'] ?? [] as $meta) {
+        if (($meta['key'] ?? '') === 'utm_user' && !empty($meta['value'])) {
+            $userId = (int) $meta['value'];
+            break;
+        }
+    }
+
+    // Fallback: check customer note or order_key
+    if (!$userId) {
+        $note = $order['customer_note'] ?? '';
+        if (preg_match('/utm_user[=:](\d+)/', $note, $matches)) {
+            $userId = (int) $matches[1];
+        }
+    }
+
+    if (!$userId) {
+        return response()->json(['ok' => true, 'skipped' => 'no utm_user']);
+    }
+
+    $user = User::find($userId);
+    if (!$user || !$user->subscription) {
+        return response()->json(['ok' => true, 'skipped' => 'user not found or not subscribed']);
+    }
+
+    // Step 2: Verify HMAC using seller's WooCommerce webhook secret
+    $secret = $user->woocommerce_webhook_secret;
+    if (!$secret) {
+        return response()->json(['error' => 'No WooCommerce webhook secret configured'], 400);
+    }
+
+    $computed = base64_encode(hash_hmac('sha256', $body, $secret, true));
+    if (!hash_equals($computed, $signature ?? '')) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+
+    // Step 3: Parse WooCommerce order
+    $orderId = (string) ($order['id'] ?? '');
+    if (DB::table('shopify_orders')->where('shopify_order_id', 'wc_' . $orderId)->exists()) {
+        return response()->json(['ok' => true, 'skipped' => 'duplicate']);
+    }
+
+    $billing       = $order['billing'] ?? [];
+    $firstName     = $billing['first_name'] ?? '';
+    $lastName      = $billing['last_name']  ?? '';
+    $customerName  = trim("$firstName $lastName") ?: null;
+    $customerEmail = $billing['email'] ?? null;
+
+    $lineItems = collect($order['line_items'] ?? [])->map(fn($item) => [
+        'name'     => $item['name']     ?? '',
+        'quantity' => $item['quantity'] ?? 1,
+        'price'    => $item['price']    ?? '0.00',
+    ])->values()->all();
+
+    DB::table('shopify_orders')->insert([
+        'user_id'          => $userId,
+        'shopify_order_id' => 'wc_' . $orderId,  // prefix to avoid collision with Shopify IDs
+        'customer_name'    => $customerName,
+        'customer_email'   => $customerEmail,
+        'total_price'      => (float) ($order['total'] ?? 0),
+        'line_items'       => json_encode($lineItems),
+        'landing_site'     => null,
+        'ordered_at'       => isset($order['date_created'])
+                                ? \Carbon\Carbon::parse($order['date_created'])->toDateTimeString()
                                 : now(),
         'created_at'       => now(),
         'updated_at'       => now(),

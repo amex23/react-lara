@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/store-profile/*',
             'api/webhooks/shopify/orders',
+            'api/webhooks/woocommerce/orders',
             'api/webhooks/lemonsqueezy',
         ]);
 

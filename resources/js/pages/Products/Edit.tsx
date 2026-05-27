@@ -47,6 +47,9 @@ export default function Edit() {
         checkout_url5:         product.checkout_url5         ?? '',
         checkout_url6:         product.checkout_url6         ?? '',
         default_checkout_url:  product.default_checkout_url  ?? '',
+        shopify_webhook_secret:     '',
+        woocommerce_webhook_secret: '',
+        store_platform:        product.store_platform        ?? '',
     });
 
     const basePath = isAdmin ? '/products' : '/dashboard';
@@ -159,6 +162,74 @@ export default function Edit() {
                             <p className="text-xs text-red-500">{errors.default_checkout_url}</p>
                         )}
                     </div>
+
+                    {/* Store Platform */}
+                    <div className="space-y-2">
+                        <Label>Store Platform</Label>
+                        <div className="flex gap-3">
+                            {['shopify', 'woocommerce'].map((platform) => (
+                                <button
+                                    key={platform}
+                                    type="button"
+                                    onClick={() => setData('store_platform', platform)}
+                                    className={`flex-1 py-2.5 px-4 rounded-lg border text-sm font-medium transition-all ${
+                                        data.store_platform === platform
+                                            ? 'bg-blue-50 border-blue-500 text-blue-700'
+                                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
+                                    }`}
+                                >
+                                    {platform === 'shopify' ? '🛍 Shopify' : '🔌 WooCommerce'}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Select your store platform so ShopMyDay knows how to verify your orders.
+                        </p>
+                    </div>
+
+                    {/* Shopify Webhook Secret */}
+                    {(data.store_platform === 'shopify' || data.store_platform === '') && (
+                        <div className="space-y-2 p-4 rounded-xl border border-slate-200 bg-slate-50">
+                            <Label htmlFor="shopify_webhook_secret" className="font-semibold">
+                                🛍 Shopify Webhook Secret
+                            </Label>
+                            <Input
+                                id="shopify_webhook_secret"
+                                type="password"
+                                placeholder="Paste your Shopify webhook signing secret"
+                                value={data.shopify_webhook_secret}
+                                onChange={(e) => setData('shopify_webhook_secret', e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Found in Shopify Admin → Settings → Notifications → Webhooks → your webhook → Signing secret.
+                            </p>
+                            {product.has_shopify_secret && !data.shopify_webhook_secret && (
+                                <p className="text-xs text-green-600 font-medium">✓ Webhook secret already saved</p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* WooCommerce Webhook Secret */}
+                    {(data.store_platform === 'woocommerce' || data.store_platform === '') && (
+                        <div className="space-y-2 p-4 rounded-xl border border-slate-200 bg-slate-50">
+                            <Label htmlFor="woocommerce_webhook_secret" className="font-semibold">
+                                🔌 WooCommerce Webhook Secret
+                            </Label>
+                            <Input
+                                id="woocommerce_webhook_secret"
+                                type="password"
+                                placeholder="Paste your WooCommerce webhook secret"
+                                value={data.woocommerce_webhook_secret}
+                                onChange={(e) => setData('woocommerce_webhook_secret', e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Found in WordPress Admin → WooCommerce → Settings → Advanced → Webhooks → your webhook → Secret.
+                            </p>
+                            {product.has_woocommerce_secret && !data.woocommerce_webhook_secret && (
+                                <p className="text-xs text-green-600 font-medium">✓ Webhook secret already saved</p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Price — admin only */}
                     {isAdmin && (
