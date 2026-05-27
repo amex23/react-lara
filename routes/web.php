@@ -82,24 +82,6 @@ Route::middleware('auth')->get('/subscribe/cancel', function () {
     return redirect()->route('dashboard')->with('error', 'Could not cancel. Please contact support.');
 })->name('subscribe.cancel');
 
-// Cancel subscription — redirects to Lemon Squeezy customer portal
-Route::middleware('auth')->get('/subscribe/cancel', function () {
-    $user = auth()->user();
-    if (!$user->ls_subscription_id) {
-        return redirect()->route('dashboard')->with('message', 'No active subscription found.');
-    }
-    $response = \Illuminate\Support\Facades\Http::withHeaders([
-        'Authorization' => 'Bearer ' . env('LEMONSQUEEZY_API_KEY'),
-        'Accept'        => 'application/vnd.api+json',
-        'Content-Type'  => 'application/vnd.api+json',
-    ])->delete('https://api.lemonsqueezy.com/v1/subscriptions/' . $user->ls_subscription_id);
-    if ($response->successful()) {
-        $user->update(['ls_status' => 'cancelled']);
-        return redirect()->route('dashboard')->with('message', 'Subscription cancelled. Your store remains active until the end of the billing period.');
-    }
-    return redirect()->route('dashboard')->with('error', 'Could not cancel. Please contact support.');
-})->name('subscribe.cancel');
-
 // Webhook — no auth, no CSRF (covered by signature verification inside controller)
 Route::post('/api/webhooks/lemonsqueezy', [LemonSqueezyController::class, 'webhook'])
     ->name('webhooks.lemonsqueezy');
