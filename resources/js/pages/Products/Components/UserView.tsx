@@ -22,6 +22,7 @@ interface Product {
     description?: string | null;
     price?: string | number | null;
     subscription?: boolean;
+    currency?: string | null;
     ls_status?: string | null;
     ls_subscription_id?: string | null;
     image1_url?: string | null;
@@ -236,7 +237,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>{product.price != null ? `₱${Number(product.price).toFixed(2)}` : '—'}</TableCell>
+                                        <TableCell>{product.price != null ? `${product.currency === 'PHP' ? '₱' : product.currency === 'EUR' ? '€' : product.currency === 'GBP' ? '£' : '$'}${Number(product.price).toFixed(2)}` : '—'}</TableCell>
                                         <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
                                         
                                         <TableCell>
@@ -285,7 +286,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
 
             {/* 4. Orders section */}
             {myProfile?.subscription && (
-                <OrdersSection />
+                <OrdersSection currency={myProfile?.currency ?? 'USD'} />
             )}
 
             {/* Empty state */}

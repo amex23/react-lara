@@ -33,6 +33,7 @@ export default function Edit() {
         name:                  product.name                  ?? '',
         description:           product.description           ?? '',
         price:                 product.price                 ?? '',
+        currency:              product.currency              ?? 'USD',
         subscription:          !!product.subscription,
         image1: null as File | null,
         image2: null as File | null,
@@ -234,15 +235,31 @@ export default function Edit() {
                     {/* Price — admin only */}
                     {isAdmin && (
                         <div className="space-y-2">
-                            <Label htmlFor="price">Price (USD)</Label>
-                            <Input
-                                id="price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={data.price}
-                                onChange={(e) => setData('price', e.target.value)}
-                            />
+                            <Label htmlFor="price">Price</Label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={data.currency}
+                                    onChange={(e) => setData('currency', e.target.value)}
+                                    className="border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
+                                >
+                                    <option value="USD">$ USD</option>
+                                    <option value="PHP">₱ PHP</option>
+                                    <option value="EUR">€ EUR</option>
+                                    <option value="GBP">£ GBP</option>
+                                    <option value="AUD">A$ AUD</option>
+                                    <option value="SGD">S$ SGD</option>
+                                    <option value="JPY">¥ JPY</option>
+                                </select>
+                                <Input
+                                    id="price"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={data.price}
+                                    onChange={(e) => setData('price', e.target.value)}
+                                    className="flex-1"
+                                />
+                            </div>
                         </div>
                     )}
 
