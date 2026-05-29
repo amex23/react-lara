@@ -84,7 +84,7 @@ export default function OrdersSection() {
                         <div className="text-xs text-slate-500 mt-0.5">Total Orders</div>
                     </div>
                     <div className="flex-1 px-6 py-4 text-center">
-                        <div className="text-2xl font-bold text-emerald-600">${(data.revenue ?? 0).toFixed(2)}</div>
+                        <div className="text-2xl font-bold text-emerald-600">₱{(data.revenue ?? 0).toFixed(2)}</div>
                         <div className="text-xs text-slate-500 mt-0.5">Total Revenue</div>
                     </div>
                 </div>
@@ -107,14 +107,14 @@ export default function OrdersSection() {
                                 <div key={order.id} className="p-4 space-y-2">
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs font-mono text-slate-500">#{order.shopify_order_id}</span>
-                                        <span className="text-xs font-semibold text-emerald-600">${Number(order.total_price).toFixed(2)}</span>
+                                        <span className="text-xs font-semibold text-emerald-600">₱{Number(order.total_price).toFixed(2)}</span>
                                     </div>
                                     <div className="text-sm font-medium text-slate-700">{order.customer_name || '—'}</div>
                                     {order.customer_email && <div className="text-xs text-slate-400">{order.customer_email}</div>}
                                     <div className="space-y-0.5">
                                         {items.map((item, i) => (
                                             <div key={i} className="text-xs text-slate-500">
-                                                {item.quantity}× {item.name} <span className="text-slate-400">${item.price}</span>
+                                                {item.quantity}× {item.name} <span className="text-slate-400">₱{item.price}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -150,12 +150,12 @@ export default function OrdersSection() {
                                                     {items.map((item, i) => (
                                                         <div key={i} className="text-slate-600">
                                                             {item.quantity}× {item.name}
-                                                            <span className="text-slate-400 ml-1">${item.price}</span>
+                                                            <span className="text-slate-400 ml-1">₱{item.price}</span>
                                                         </div>
                                                     ))}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 font-semibold text-emerald-600">${Number(order.total_price).toFixed(2)}</td>
+                                            <td className="px-4 py-3 font-semibold text-emerald-600">₱{Number(order.total_price).toFixed(2)}</td>
                                             <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{new Date(order.ordered_at).toLocaleString()}</td>
                                         </tr>
                                     );
@@ -192,3 +192,5 @@ export default function OrdersSection() {
         </div>
     );
 }
+
+

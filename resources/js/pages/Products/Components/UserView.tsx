@@ -236,7 +236,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
+                                        <TableCell>{product.price != null ? `₱${Number(product.price).toFixed(2)}` : '—'}</TableCell>
                                         <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
                                         
                                         <TableCell>
