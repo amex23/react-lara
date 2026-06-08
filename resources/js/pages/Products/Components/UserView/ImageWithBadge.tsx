@@ -13,7 +13,7 @@ export default function ImageWithBadge({ src, alt, viewCount, size = 'sm' }: { s
 
             {viewCount > 0 && (
                 
-                <span className="bg-red-500 absolute px-1 py-0 top-[3%] right-2 text-xs text-white font-bold rounded-sm leading-tight">
+                <span className="bg-red-500 absolute px-1 py-0 top-[3.5%] right-2 text-xs text-white font-bold rounded-sm leading-tight">
                     
                     {viewCount}
                 </span>
