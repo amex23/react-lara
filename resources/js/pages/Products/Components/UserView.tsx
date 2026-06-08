@@ -157,7 +157,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                     <div className="flex flex-col gap-4 md:hidden">
                         {products.map((product) => (
                             <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
-                                <div className="flex gap-1.5 flex-wrap">
+                                <div className="grid grid-cols-2 lg:grid-cols-3">
                                     {[1,2,3,4,5,6].map((i) => {
                                         const key = `image${i}_url` as keyof Product;
                                         const viewCount = imageViews[String(i)] ?? 0;
@@ -174,7 +174,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     {product.price != null && <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>}
                                     {product.description && <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>}
                                 </div>
-                                <div className="flex items-center justify-between pt-1">
+                                <div className="flex items-center flex-col lg:flex-row justify-between pt-1">
                                     {product.subscription ? (
                                         <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
                                     ) : (
@@ -223,7 +223,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                 {products.map((product) => (
                                     <TableRow key={product.id}>
                                         <TableCell>
-                                            <div className="flex gap-1.5 flex-wrap">
+                                            <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-1.5 w-60 xl:w-90">
                                                 {[1,2,3,4,5,6].map((i) => {
                                                     const key = `image${i}_url` as keyof Product;
                                                     const viewCount = imageViews[String(i)] ?? 0;
@@ -232,7 +232,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                     ) : null;
                                                 })}
                                                 {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                                    <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
+                                                    <div className="zzz bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
                                                 )}
                                             </div>
                                         </TableCell>

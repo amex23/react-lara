@@ -112,9 +112,10 @@ export default function AdminView({ products, editUrlBase }: AdminViewProps) {
                                                     ) : null;
                                                 })}
                                                 {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
-                                                    <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
+                                                    <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground zzz">no img</div>
                                                 )}
                                             </div>
+                                            
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
                                         <TableCell>{product.price != null ? `$${Number(product.price).toFixed(2)}` : '—'}</TableCell>
