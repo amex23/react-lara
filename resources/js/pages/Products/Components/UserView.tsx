@@ -157,7 +157,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                     <div className="flex flex-col gap-4 md:hidden">
                         {products.map((product) => (
                             <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
-                                <div className="grid grid-cols-2 lg:grid-cols-3">
+                                <div className="grid gap-2 grid-cols-2 lg:grid-cols-3">
                                     {[1,2,3,4,5,6].map((i) => {
                                         const key = `image${i}_url` as keyof Product;
                                         const viewCount = imageViews[String(i)] ?? 0;
@@ -174,7 +174,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     {product.price != null && <p className="text-sm text-muted-foreground">${Number(product.price).toFixed(2)}</p>}
                                     {product.description && <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>}
                                 </div>
-                                <div className="flex items-center flex-col lg:flex-row justify-between pt-1">
+                                <div className="flex items-start lg:items-center gap-3 lg:gap-0 flex-col lg:flex-row justify-between pt-1">
                                     {product.subscription ? (
                                         <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
                                     ) : (
