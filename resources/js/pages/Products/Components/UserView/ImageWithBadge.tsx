@@ -7,18 +7,22 @@ export default function ImageWithBadge({ src, alt, viewCount, size = 'sm' }: { s
     return (
         <div className="relative">
             <img src={src} alt={alt} className={`${cls} object-cover rounded border shadow-sm`} />
-                <span className="absolute px-1 py-0 top-[3%] right-6 text-xs text-white font-bold rounded-sm leading-tight">
-                    <FontAwesomeIcon icon={faEye} />
-                </span>
 
-            {viewCount > 0 && (
-                
-                <span className="bg-red-500 absolute px-1 py-0 top-[3.5%] right-2 text-xs text-white font-bold rounded-sm leading-tight">
-                    
-                    {viewCount}
+            <span className="absolute top-[3%] z-[99] flex bg-[#4A4A4A] flex items-center justify-center rounded-xs ml-2 mt-2 px-[1px] py-[1px]">
+                <span className="px-1 py-0 text-xs text-white font-bold rounded-sm leading-tight">
+                        <FontAwesomeIcon icon={faEye} />
                 </span>
+                {viewCount > 0 && (
+                    
+                    <span className="bg-red-500 px-1 py-0 text-xs text-white font-bold rounded-sm leading-tight">
+                        
+                        {viewCount}
+                    </span>
+                    
+                )}
+            </span>
                 
-            )}
         </div>
     );
 }
+
