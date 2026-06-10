@@ -26,3 +26,4 @@ export default function ImageWithBadge({ src, alt, viewCount, size = 'sm' }: { s
     );
 }
 
+
