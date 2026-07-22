@@ -105,14 +105,14 @@ export default function Pricing() {
                     </div>
                 </div>
 
-                {/* Pricing Card */}
+                {/* Basic Pricing Card */}
                 <div className="max-w-5xl mx-auto px-6 py-16">
                     <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
 
                         {/* Main card */}
                         <div className="w-full lg:w-96 bg-white rounded-2xl shadow-lg border-2 border-[#37B6FF] overflow-hidden">
                             <div className="bg-[#37B6FF] px-8 py-6 text-white text-center">
-                                <p className="text-sm font-semibold uppercase tracking-widest opacity-90 mb-1">ShopMyDay Store Plan</p>
+                                <p className="text-sm font-semibold uppercase tracking-widest opacity-90 mb-1">Basic ShopMyDay Store Plan</p>
                                 <div className="flex items-end justify-center gap-1 mt-2">
                                     <span className="text-2xl font-bold">$</span>
                                     <span className="text-6xl font-extrabold leading-none">11</span>
@@ -131,7 +131,73 @@ export default function Pricing() {
                                     'Daily stats calendar',
                                     'Shareable public store profile URL',
                                     'Automatic monthly billing',
-                                    '20% of profits go to World Vision PH',
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                        <span className="text-[#37B6FF] font-bold mt-0.5">✓</span>
+                                        <span className="text-gray-700 text-sm">{item}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="px-8 pb-8">
+                                {auth?.user ? (
+                                    <a href="/subscribe" className="block w-full text-center bg-[#37B6FF] hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition text-sm">
+                                        ⚡ Activate My Store
+                                    </a>
+                                ) : (
+                                    <Link href="/register" className="block w-full text-center bg-[#37B6FF] hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition text-sm">
+                                        Get Started Now
+                                    </Link>
+                                )}
+                                <p className="text-xs text-gray-400 text-center mt-3">
+                                    Secure payment via Lemon Squeezy · Visa, Mastercard, PayPal accepted
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* What's included summary */}
+                        <div className="flex-1 space-y-4">
+                            <h2 className="text-xl font-bold text-gray-900 mb-6">What's included in your subscription</h2>
+                            {features.map((f, i) => (
+                                <div key={i} className="flex gap-4 bg-white rounded-xl p-4 border shadow-sm">
+                                    <span className="text-2xl">{f.icon}</span>
+                                    <div>
+                                        <p className="font-semibold text-gray-900 text-sm">{f.title}</p>
+                                        <p className="text-gray-500 text-sm mt-0.5">{f.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Pro Pricing Card */}
+                <div className="max-w-5xl mx-auto px-6 py-16">
+                    <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+
+                        {/* Main card */}
+                        <div className="w-full lg:w-96 bg-white rounded-2xl shadow-lg border-2 border-[#37B6FF] overflow-hidden">
+                            <div className="bg-[#37B6FF] px-8 py-6 text-white text-center">
+                                <p className="text-sm font-semibold uppercase tracking-widest opacity-90 mb-1">Pro ShopMyDay Store Plan</p>
+                                <div className="flex items-end justify-center gap-1 mt-2">
+                                    <span className="text-2xl font-bold">$</span>
+                                    <span className="text-6xl font-extrabold leading-none">25</span>
+                                    <span className="text-xl font-medium mb-2">/mo</span>
+                                </div>
+                                <p className="text-sm opacity-80 mt-2">Billed monthly · Cancel anytime</p>
+                            </div>
+
+                            <div className="px-8 py-6 space-y-3">
+                                {[
+                                    'Story-style product display (up to 12 images)',
+                                    'Video reels display (up to 12 videos)',
+                                    'Direct Shopify checkout links per image',
+                                    'Real-time views & checkout analytics',
+                                    'Conversion rate tracking',
+                                    'Order tracking from ShopMyDay',
+                                    'Daily stats calendar',
+                                    'Shareable public store profile URL',
+                                    'Automatic monthly billing',
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-start gap-3">
                                         <span className="text-[#37B6FF] font-bold mt-0.5">✓</span>
