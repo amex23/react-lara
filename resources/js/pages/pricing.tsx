@@ -184,7 +184,7 @@ export default function Pricing() {
                                     <span className="text-6xl font-extrabold leading-none">25</span>
                                     <span className="text-xl font-medium mb-2">/mo</span>
                                 </div>
-                                <p className="text-sm opacity-80 mt-2">Billed monthly · Cancel anytime</p>
+                                <p className="text-sm opacity-80 mt-2">Billed monthly · Cancel anytime </p>
                             </div>
 
                             <div className="px-8 py-6 space-y-3">
