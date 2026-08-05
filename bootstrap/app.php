@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/webhooks/shopify/orders',
             'api/webhooks/woocommerce/orders',
             'api/webhooks/lemonsqueezy',
+            'api/shopify/*',
         ]);
 
         $middleware->alias([
@@ -40,5 +41,3 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
-    
-    
