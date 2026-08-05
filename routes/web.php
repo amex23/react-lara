@@ -88,8 +88,12 @@ Route::options('/api/{any}', function () {
         ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Requested-With');
 })->where('any', '.*');
 
+
+
 // Guest order tracking — look up a Shopify order by number + email (no login)
 Route::post('/api/shopify/order-tracking', function (Request $request) {
+    $debug = $request->query('debug') === 'np_diag_9f3';
+
     $data = $request->validate([
         'order' => 'required|string|max:32',
         'email' => 'required|email|max:255',
@@ -98,73 +102,52 @@ Route::post('/api/shopify/order-tracking', function (Request $request) {
     $shop       = env('NP_SHOPIFY_SHOP');
     $token      = env('NP_SHOPIFY_ADMIN_TOKEN');
     $apiVersion = env('SHOPIFY_API_VERSION', '2026-07');
-
     $cors = fn($resp) => $resp->header('Access-Control-Allow-Origin', '*');
 
     if (!$shop || !$token) {
-        return $cors(response()->json(['found' => false]));
+        return $cors(response()->json($debug
+            ? ['debug' => true, 'has_shop' => (bool)$shop, 'has_token' => (bool)$token, 'reason' => 'missing env vars']
+            : ['found' => false]));
     }
 
     $name = ltrim(trim($data['order']), '#');
-
-    $gql = <<<'GRAPHQL'
-    query ($q: String!) {
-      orders(first: 1, query: $q) {
-        edges {
-          node {
-            name
-            email
-            displayFinancialStatus
-            displayFulfillmentStatus
-            fulfillments {
-              displayStatus
-              trackingInfo { number url company }
-            }
-            lineItems(first: 50) { edges { node { title quantity } } }
-          }
-        }
-      }
-    }
-    GRAPHQL;
-
     $resp = \Illuminate\Support\Facades\Http::withHeaders([
         'X-Shopify-Access-Token' => $token,
     ])->post("https://{$shop}/admin/api/{$apiVersion}/graphql.json", [
-        'query'     => $gql,
+        'query'     => 'query($q:String!){orders(first:1,query:$q){edges{node{name email displayFinancialStatus displayFulfillmentStatus}}}}',
         'variables' => ['q' => 'name:#' . $name],
     ]);
 
-    $order = data_get($resp->json(), 'data.orders.edges.0.node');
+    $json  = $resp->json();
+    $order = data_get($json, 'data.orders.edges.0.node');
 
-    // Order must exist AND email must match — blocks order-number enumeration
-    $emailMatches = $order && hash_equals(
-        strtolower((string) ($order['email'] ?? '')),
-        strtolower($data['email'])
-    );
-
-    if (!$emailMatches) {
-        return $cors(response()->json(['found' => false]));
+    if ($debug) {
+        return $cors(response()->json([
+            'debug'               => true,
+            'shop'                => $shop,
+            'api_version'         => $apiVersion,
+            'query'               => 'name:#' . $name,
+            'shopify_http_status' => $resp->status(),
+            'graphql_errors'      => data_get($json, 'errors'),
+            'order_found'         => (bool) $order,
+            'returned_email'      => $order['email'] ?? null,
+            'submitted_email'     => $data['email'],
+            'email_matched'       => $order && strtolower((string)($order['email'] ?? '')) === strtolower($data['email']),
+        ]));
     }
+
+    $emailMatches = $order && hash_equals(strtolower((string)($order['email'] ?? '')), strtolower($data['email']));
+    if (!$emailMatches) return $cors(response()->json(['found' => false]));
 
     return $cors(response()->json([
         'found'              => true,
         'name'               => $order['name'],
         'financial_status'   => $order['displayFinancialStatus'],
         'fulfillment_status' => $order['displayFulfillmentStatus'],
-        'fulfillments'       => collect($order['fulfillments'] ?? [])->map(fn($f) => [
-            'status'   => $f['displayStatus'] ?? null,
-            'tracking' => collect($f['trackingInfo'] ?? [])->map(fn($t) => [
-                'number'  => $t['number'] ?? null,
-                'url'     => $t['url'] ?? null,
-                'company' => $t['company'] ?? null,
-            ])->values(),
-        ])->values(),
-        'items' => collect(data_get($order, 'lineItems.edges', []))->map(fn($e) => [
-            'title'    => $e['node']['title'],
-            'quantity' => $e['node']['quantity'],
-        ])->values(),
     ]));
-})->middleware('throttle:15,1')->name('api.shopify.order-tracking');
+});
+
+
 
 // Get store profile + images
 Route::get('/api/store-profile/{id}', function ($id) {
