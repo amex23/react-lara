@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import UpgradeToProButton from '@/components/upgradetoprobutton';
 import { TrendingUp } from 'lucide-react';
 import {
     Table,
@@ -13,6 +14,7 @@ import StatsCalendar from './UserView/StatsCalendar';
 import OrdersSection from './UserView/OrdersSection';
 import ImageWithBadge from './UserView/ImageWithBadge';
 import SubscribeButton from '@/components/SubscribeButton';
+import { usePage } from '@inertiajs/react';
 
 interface Product {
     id: number;
@@ -31,6 +33,12 @@ interface Product {
     image4_url?: string | null;
     image5_url?: string | null;
     image6_url?: string | null;
+    plan?: string;
+    plan_label?: string;
+    media_limit?: number;
+    allows_video?: boolean;
+    display_count?: number;
+    [key: string]: unknown;
 }
 
 interface UserViewProps {
@@ -39,7 +47,17 @@ interface UserViewProps {
     editUrlBase: string;
 }
 
+const videoExts = ['mp4', 'webm', 'mov', 'm4v'];
+const isVideoUrl = (url?: string | null) =>
+    !!url && videoExts.includes(url.split('.').pop()?.toLowerCase() ?? '');
+
+const slotsFor = (product: Product) =>
+    Array.from({ length: product.media_limit ?? 6 }, (_, k) => k + 1);
+
 export default function UserView({ products, myProfile, editUrlBase }: UserViewProps) {
+
+    const { flash } = usePage().props as { flash?: { message?: string; error?: string } };
+
     const [imageViews, setImageViews] = useState<Record<string, number>>({});
     const [monthCheckouts, setMonthCheckouts] = useState<number>(0);
     const [monthOrders, setMonthOrders]       = useState<number>(0);
@@ -48,6 +66,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
     });
+
     const [convTo, setConvTo] = useState(() => {
         const now = new Date();
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -89,8 +108,57 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
         }
     };
 
+    const renderMediaCell = (
+        product: Product,
+        i: number,
+        size: 'sm' | 'lg',
+    ) => {
+        const url = product[`image${i}_url`] as string | null;
+        if (!url) return null;
+
+        const type = (product[`image${i}_type`] as string | null)
+            ?? (isVideoUrl(url) ? 'video' : 'image');
+
+        if (type === 'video') {
+            const dim = size === 'sm' ? 'w-full h-[120px]' : 'w-full aspect-square';
+            return (
+                <div key={i} className={`relative ${dim}`}>
+                    <video
+                        src={url}
+                        className="w-full h-full object-cover rounded border"
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                    />
+                    <span className="absolute bottom-0.5 right-0.5 text-[9px] font-bold bg-black/60 text-white px-1 rounded">
+                        &#9654;
+                    </span>
+                </div>
+            );
+        }
+
+        const viewCount = imageViews[String(i)] ?? 0;
+        return (
+            <ImageWithBadge key={i} src={url} alt={`Media ${i}`} viewCount={viewCount} size={size} />
+        );
+    };
+
     return (
         <>
+            {/* Flash messages — visible on every breakpoint */}
+            {flash?.message && (
+                <div className="mb-2 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                    {flash.message}
+                </div>
+            )}
+
+            {flash?.error && (
+                <div className="mb-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {flash.error}
+                </div>
+            )}
+
             {/* Not subscribed — show subscribe CTA */}
             {!myProfile?.subscription && (
                 <div className="mb-2 p-5 bg-yellow-50 border border-yellow-200 rounded-xl text-center flex flex-col items-center gap-3">
@@ -158,14 +226,8 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                         {products.map((product) => (
                             <div key={product.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
                                 <div className="grid gap-2 grid-cols-2 lg:grid-cols-3">
-                                    {[1,2,3,4,5,6].map((i) => {
-                                        const key = `image${i}_url` as keyof Product;
-                                        const viewCount = imageViews[String(i)] ?? 0;
-                                        return product[key] ? (
-                                            <ImageWithBadge key={i} src={product[key] as string} alt={`Image ${i}`} viewCount={viewCount} size="sm" />
-                                        ) : null;
-                                    })}
-                                    {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                                    {slotsFor(product).map((i) => renderMediaCell(product, i, 'sm'))}
+                                    {!slotsFor(product).some(i => product[`image${i}_url`]) && (
                                         <div className="w-18 h-18 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
                                     )}
                                 </div>
@@ -176,17 +238,17 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                 </div>
                                 <div className="flex items-start lg:items-center gap-3 lg:gap-0 flex-col lg:flex-row justify-between pt-1">
                                     {product.subscription ? (
-                                        <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Connected</span>
+                                        <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">&#10003; Connected</span>
                                     ) : (
-                                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">✗ Not Connected</span>
+                                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">&#10007; Not Connected</span>
                                     )}
                                     <div className="flex gap-2 items-center">
                                         {isActiveSubscriber(product) ? (
                                             <div className="flex items-center gap-x-1">
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
-                                                    ✓ Subscribed
+                                                    &#10003; Subscribed
                                                 </span>
-                                                <a href="/subscribe/cancel" onClick={handleCancel}>
+                                                <a href="/subscription/cancel" onClick={handleCancel}>
                                                     <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs">
                                                         Cancel Subscription
                                                     </Button>
@@ -195,7 +257,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                         ) : (
                                             <a href="/subscribe">
                                                 <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold">
-                                                    ⚡ Subscribe
+                                                    &#9889; Subscribe
                                                 </Button>
                                             </a>
                                         )}
@@ -204,6 +266,17 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                 </div>
                             </div>
                         ))}
+
+                        {/* Upgrade CTA — mobile */}
+                        <div className="flex w-full justify-center">
+                            <UpgradeToProButton
+                                plan={myProfile?.plan ?? 'basic'}
+                                hasSubscription={
+                                    !!myProfile?.ls_subscription_id &&
+                                    myProfile?.ls_status === 'active'
+                                }
+                            />
+                        </div>
                     </div>
 
                     {/* Desktop table */}
@@ -224,30 +297,24 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                     <TableRow key={product.id}>
                                         <TableCell>
                                             <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-1.5 w-60 xl:w-90">
-                                                {[1,2,3,4,5,6].map((i) => {
-                                                    const key = `image${i}_url` as keyof Product;
-                                                    const viewCount = imageViews[String(i)] ?? 0;
-                                                    return product[key] ? (
-                                                        <ImageWithBadge key={i} src={product[key] as string} alt={`Image ${i}`} viewCount={viewCount} size="lg" />
-                                                    ) : null;
-                                                })}
-                                                {![1,2,3,4,5,6].some(i => product[`image${i}_url` as keyof Product]) && (
+                                                {slotsFor(product).map((i) => renderMediaCell(product, i, 'lg'))}
+                                                {!slotsFor(product).some(i => product[`image${i}_url`]) && (
                                                     <div className="zzz bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">no img</div>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>{product.price != null ? `${product.currency === 'PHP' ? '₱' : product.currency === 'EUR' ? '€' : product.currency === 'GBP' ? '£' : '$'}${Number(product.price).toFixed(2)}` : '—'}</TableCell>
-                                        <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '—'}</TableCell>
-                                        
+                                        <TableCell>{product.price != null ? `${product.currency === 'PHP' ? '\u20b1' : product.currency === 'EUR' ? '\u20ac' : product.currency === 'GBP' ? '\u00a3' : '$'}${Number(product.price).toFixed(2)}` : '\u2014'}</TableCell>
+                                        <TableCell className="max-w-md truncate text-sm text-muted-foreground">{product.description || '\u2014'}</TableCell>
+
                                         <TableCell>
-                                            
+
                                             {isActiveSubscriber(product) ? (
                                                     <div className="flex flex items-center gap-1">
                                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-2 rounded-lg whitespace-nowrap">
-                                                            ✓ Subscribed
+                                                            &#10003; Subscribed
                                                         </span>
-                                                        <a href="/subscribe/cancel" onClick={handleCancel}>
+                                                        <a href="/subscription/cancel" onClick={handleCancel}>
                                                             <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap text-xs px-1 py-1.5">
                                                                 Cancel Subscription
                                                             </Button>
@@ -256,21 +323,21 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                 ) : (
                                                     <a href="/subscribe">
                                                         <Button size="sm" className="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-semibold whitespace-nowrap">
-                                                            ⚡ Subscribe
+                                                            &#9889; Subscribe
                                                         </Button>
                                                     </a>
                                              )}
 
                                         </TableCell>
-                                        
+
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-between gap-2">
 
                                                 {product.subscription
-                                                ? <span className="text-green-600 font-medium">✓ Connected</span>
-                                                : <span className="text-slate-400">✗ Not Connected</span>
+                                                ? <span className="text-green-600 font-medium">&#10003; Connected</span>
+                                                : <span className="text-slate-400">&#10007; Not Connected</span>
                                             }
-                                                
+
                                                 <a href={`${editUrlBase}/${product.id}/edit`}>
                                                     <Button size="sm" variant="outline">Edit</Button>
                                                 </a>
@@ -280,6 +347,17 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                 ))}
                             </TableBody>
                         </Table>
+
+                        {/* Upgrade CTA — desktop */}
+                        <div className="flex w-full justify-center py-4">
+                            <UpgradeToProButton
+                                plan={myProfile?.plan ?? 'basic'}
+                                hasSubscription={
+                                    !!myProfile?.ls_subscription_id &&
+                                    myProfile?.ls_status === 'active'
+                                }
+                            />
+                        </div>
                     </div>
                 </>
             )}

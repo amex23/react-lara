@@ -10,6 +10,7 @@ use Laravel\Fortify\Fortify;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\AdminRegisterController;
 use App\Http\Controllers\LemonSqueezyController;
+use App\Http\Controllers\SubscriptionController;
 use App\Models\User;
 use App\Models\VisitorLog;
 
@@ -49,38 +50,28 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Lemon Squeezy
 // ─────────────────────────────────────────────
 
-// Redirect user to Lemon Squeezy checkout (pre-filled with their email)
-Route::middleware('auth')->get('/subscribe', function () {
-    $user = auth()->user();
-    $base = env('LEMONSQUEEZY_STORE_URL');
-    $url  = $base
-        . '?checkout[email]=' . urlencode($user->email)
-        . '&checkout[name]='  . urlencode($user->name);
-    return redirect()->away($url);
-})->name('subscribe');
+// New customer  -> hosted checkout at the plan price.
+// Existing customer -> prorated plan change via the Lemon Squeezy API.
+Route::middleware('auth')->group(function () {
+    Route::get('/subscribe/{plan?}', [SubscriptionController::class, 'checkout'])
+        ->whereIn('plan', ['basic', 'pro'])
+        ->name('subscribe');
 
-// After successful payment, redirect back to dashboard
-Route::middleware('auth')->get('/subscribe/success', function () {
-    return redirect()->route('dashboard')->with('message', 'Subscription activated! Your store is now live.');
-})->name('subscribe.success');
+    // Upgrade / downgrade an existing subscription (used by UpgradeToProButton).
+    Route::post('/subscribe/{plan}', [SubscriptionController::class, 'change'])
+        ->whereIn('plan', ['basic', 'pro'])
+        ->name('subscribe.change');
 
-// Cancel subscription
-Route::middleware('auth')->get('/subscribe/cancel', function () {
-    $user = auth()->user();
-    if (!$user->ls_subscription_id) {
-        return redirect()->route('dashboard')->with('message', 'No active subscription found.');
-    }
-    $response = \Illuminate\Support\Facades\Http::withHeaders([
-        'Authorization' => 'Bearer ' . env('LEMONSQUEEZY_API_KEY'),
-        'Accept'        => 'application/vnd.api+json',
-        'Content-Type'  => 'application/vnd.api+json',
-    ])->delete('https://api.lemonsqueezy.com/v1/subscriptions/' . $user->ls_subscription_id);
-    if ($response->successful()) {
-        $user->update(['ls_status' => 'cancelled']);
-        return redirect()->route('dashboard')->with('message', 'Subscription cancelled. Your store remains active until the end of the billing period.');
-    }
-    return redirect()->route('dashboard')->with('error', 'Could not cancel. Please contact support.');
-})->name('subscribe.cancel');
+    // NOTE: moved off /subscribe/cancel so it does not collide with {plan}.
+    Route::get('/subscription/cancel', [SubscriptionController::class, 'cancel'])
+        ->name('subscribe.cancel');
+
+    // After successful payment, redirect back to dashboard
+    Route::get('/subscribe/success', fn () => redirect()
+        ->route('dashboard')
+        ->with('message', 'Subscription activated! Your store is now live.')
+    )->name('subscribe.success');
+});
 
 // Webhook — no auth, no CSRF (covered by signature verification inside controller)
 Route::post('/api/webhooks/lemonsqueezy', [LemonSqueezyController::class, 'webhook'])
@@ -108,20 +99,23 @@ Route::get('/api/store-profile/{id}', function ($id) {
 
     $fallback = 'https://naturepackaged.myshopify.com/cart';
 
-    $images = collect([1, 2, 3, 4, 5, 6])
-        ->map(fn($i) => $user->{"image$i"} ? [
-            'url'          => Storage::url($user->{"image$i"}),
-            'checkout_url' => $user->{"checkout_url$i"} ?: $fallback,
+    $media = collect($user->mediaItems(publicOnly: true))
+        ->map(fn($m) => [
+            'url'          => $m['url'],
+            'type'         => $m['type'],            // 'image' | 'video'
+            'checkout_url' => $m['checkout_url'] ?: $fallback,
             'price'        => $user->price,
-        ] : null)
-        ->filter()
+        ])
         ->values();
 
     return response()->json([
-        'name'        => $user->name,
-        'description' => $user->description,
-        'price'       => $user->price,
-        'images'      => $images,
+        'name'          => $user->name,
+        'description'   => $user->description,
+        'price'         => $user->price,
+        'plan'          => $user->effectivePlan(),
+        'display_count' => $user->effectiveDisplayCount(),
+        'media'         => $media,
+        'images'        => $media,   // legacy key - keep until the Shopify widget is updated
     ])->header('Access-Control-Allow-Origin', '*');
 })->name('api.store.profile');
 

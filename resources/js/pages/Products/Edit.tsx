@@ -10,12 +10,25 @@ import { type BreadcrumbItem } from '@/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CircleAlert, CheckCircle } from 'lucide-react';
 
+interface PlanPayload {
+    key: string;
+    label: string;
+    media_limit: number;
+    allows_video: boolean;
+    min_display: number;
+    max_display: number;
+    display_count: number;
+    video_mimes: string;
+    image_mimes: string;
+}
+
 export default function Edit() {
-    const { product, targetUser, authUser, indexRoute } = usePage().props as {
+    const { product, targetUser, authUser, indexRoute, plan } = usePage().props as {
         product: any;
         targetUser: { id: number; name: string; user_type: string };
         authUser: any;
         indexRoute: string;
+        plan: PlanPayload;
     };
 
     const [showSuccess, setShowSuccess] = useState(false);
@@ -28,30 +41,38 @@ export default function Edit() {
     const isAdmin      = authUser?.user_type === 'admin';
     const isOwnProfile = targetUser?.id === authUser?.id;
 
-    const { data, setData, post, processing, errors } = useForm({
+    // How many upload slots this user's plan allows (6 for Basic, 12 for Pro).
+    const mediaLimit = plan?.media_limit ?? 6;
+    const slots      = Array.from({ length: mediaLimit }, (_, i) => i + 1);
+
+    // Whether the storefront display-count selector should appear (Pro only).
+    const showDisplayCount = (plan?.max_display ?? 6) > (plan?.min_display ?? 6);
+
+    // Accept string for file inputs, built from the plan.
+    const fileAccept = plan?.allows_video
+        ? 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime'
+        : 'image/jpeg,image/png,image/webp,image/gif';
+
+    // Build the initial form object dynamically so the slot count follows the plan.
+    const initialData: Record<string, unknown> = {
         _method:               'PUT',
         name:                  product.name                  ?? '',
         description:           product.description           ?? '',
         price:                 product.price                 ?? '',
         currency:              product.currency              ?? 'USD',
         subscription:          !!product.subscription,
-        image1: null as File | null,
-        image2: null as File | null,
-        image3: null as File | null,
-        image4: null as File | null,
-        image5: null as File | null,
-        image6: null as File | null,
-        checkout_url1:         product.checkout_url1         ?? '',
-        checkout_url2:         product.checkout_url2         ?? '',
-        checkout_url3:         product.checkout_url3         ?? '',
-        checkout_url4:         product.checkout_url4         ?? '',
-        checkout_url5:         product.checkout_url5         ?? '',
-        checkout_url6:         product.checkout_url6         ?? '',
         default_checkout_url:  product.default_checkout_url  ?? '',
         shopify_webhook_secret:     '',
         woocommerce_webhook_secret: '',
         store_platform:        product.store_platform        ?? '',
+        display_count:         product.display_count         ?? plan?.display_count ?? mediaLimit,
+    };
+    slots.forEach((idx) => {
+        initialData[`image${idx}`]        = null;
+        initialData[`checkout_url${idx}`] = product[`checkout_url${idx}`] ?? '';
     });
+
+    const { data, setData, post, processing, errors } = useForm(initialData);
 
     const basePath = isAdmin ? '/products' : '/dashboard';
 
@@ -67,13 +88,17 @@ export default function Edit() {
         });
     };
 
-    const handleImageChange = (
+    const handleFileChange = (
         e: React.ChangeEvent<HTMLInputElement>,
-        key: keyof typeof data,
+        key: string,
     ) => {
         const file = e.target.files?.[0];
         if (file) setData(key, file);
     };
+
+    const videoExts = ['mp4', 'webm', 'mov', 'm4v'];
+    const isVideoUrl = (url?: string | null) =>
+        !!url && videoExts.includes(url.split('.').pop()?.toLowerCase() ?? '');
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -103,11 +128,23 @@ export default function Edit() {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold">Edit Store Profile</h1>
 
-                    {isAdmin && !isOwnProfile && (
-                        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
-                            Editing store of: <strong>{targetUser?.name}</strong>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {plan && (
+                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                plan.key === 'pro'
+                                    ? 'bg-violet-100 text-violet-700 border border-violet-200'
+                                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            }`}>
+                                {plan.label} plan
+                            </span>
+                        )}
+
+                        {isAdmin && !isOwnProfile && (
+                            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded">
+                                Editing store of: <strong>{targetUser?.name}</strong>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -130,7 +167,7 @@ export default function Edit() {
                         <Label htmlFor="name">Store / Display Name *</Label>
                         <Input
                             id="name"
-                            value={data.name}
+                            value={data.name as string}
                             onChange={(e) => setData('name', e.target.value)}
                         />
                     </div>
@@ -140,7 +177,7 @@ export default function Edit() {
                         <Label htmlFor="description">Description</Label>
                         <Textarea
                             id="description"
-                            value={data.description}
+                            value={data.description as string}
                             onChange={(e) => setData('description', e.target.value)}
                             rows={5}
                         />
@@ -153,14 +190,14 @@ export default function Edit() {
                             id="default_checkout_url"
                             type="url"
                             placeholder="https://yourstore.myshopify.com/cart"
-                            value={data.default_checkout_url}
+                            value={data.default_checkout_url as string}
                             onChange={(e) => setData('default_checkout_url', e.target.value)}
                         />
                         <p className="text-xs text-muted-foreground">
                             Used as fallback when an image doesn't have its own checkout URL.
                         </p>
                         {errors.default_checkout_url && (
-                            <p className="text-xs text-red-500">{errors.default_checkout_url}</p>
+                            <p className="text-xs text-red-500">{errors.default_checkout_url as string}</p>
                         )}
                     </div>
 
@@ -198,7 +235,7 @@ export default function Edit() {
                                 id="shopify_webhook_secret"
                                 type="password"
                                 placeholder="Paste your Shopify webhook signing secret"
-                                value={data.shopify_webhook_secret}
+                                value={data.shopify_webhook_secret as string}
                                 onChange={(e) => setData('shopify_webhook_secret', e.target.value)}
                             />
                             <p className="text-xs text-muted-foreground">
@@ -220,7 +257,7 @@ export default function Edit() {
                                 id="woocommerce_webhook_secret"
                                 type="password"
                                 placeholder="Paste your WooCommerce webhook secret"
-                                value={data.woocommerce_webhook_secret}
+                                value={data.woocommerce_webhook_secret as string}
                                 onChange={(e) => setData('woocommerce_webhook_secret', e.target.value)}
                             />
                             <p className="text-xs text-muted-foreground">
@@ -238,7 +275,7 @@ export default function Edit() {
                             <Label htmlFor="price">Price</Label>
                             <div className="flex gap-2">
                                 <select
-                                    value={data.currency}
+                                    value={data.currency as string}
                                     onChange={(e) => setData('currency', e.target.value)}
                                     className="border border-input rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
                                 >
@@ -255,7 +292,7 @@ export default function Edit() {
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={data.price}
+                                    value={data.price as string}
                                     onChange={(e) => setData('price', e.target.value)}
                                     className="flex-1"
                                 />
@@ -268,7 +305,7 @@ export default function Edit() {
                         <div className="flex items-center space-x-2 p-3 rounded-lg border border-dashed border-slate-300 bg-slate-50">
                             <Checkbox
                                 id="subscription"
-                                checked={data.subscription}
+                                checked={data.subscription as boolean}
                                 onCheckedChange={(checked) =>
                                     setData('subscription', !!checked)
                                 }
@@ -292,37 +329,88 @@ export default function Edit() {
                         </div>
                     )}
 
-                    {/* Images + Checkout URLs */}
+                    {/* Storefront display count — Pro only */}
+                    {showDisplayCount && (
+                        <div className="space-y-2 p-4 rounded-xl border border-violet-200 bg-violet-50">
+                            <Label htmlFor="display_count" className="font-semibold text-violet-800">
+                                Items shown on your storefront
+                            </Label>
+                            <select
+                                id="display_count"
+                                value={data.display_count as number}
+                                onChange={(e) => setData('display_count', Number(e.target.value))}
+                                className="w-full rounded-md border border-violet-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                            >
+                                {Array.from(
+                                    { length: plan.max_display - plan.min_display + 1 },
+                                    (_, i) => plan.min_display + i,
+                                ).map((n) => (
+                                    <option key={n} value={n}>{n} items</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-violet-700/70">
+                                Empty slots are skipped, so this is a maximum — not a requirement.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Media + Checkout URLs */}
                     <div>
                         <h2 className="text-sm font-semibold text-slate-700 mb-3">
-                            Images &amp; Checkout Links
+                            {plan?.allows_video ? 'Media' : 'Images'} &amp; Checkout Links
                         </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {Array.from({ length: 6 }).map((_, i) => {
-                                const idx         = i + 1;
-                                const imageKey    = `image${idx}` as keyof typeof data;
-                                const urlKey      = `image${idx}_url` as keyof typeof product;
-                                const checkoutKey = `checkout_url${idx}` as keyof typeof data;
+                            {slots.map((idx) => {
+                                const imageKey    = `image${idx}`;
+                                const urlKey      = `image${idx}_url`;
+                                const checkoutKey = `checkout_url${idx}`;
+                                const currentUrl  = product[urlKey] as string | null;
+                                const currentType = (product[`image${idx}_type`] as string | null)
+                                    ?? (isVideoUrl(currentUrl) ? 'video' : 'image');
 
                                 return (
                                     <div key={idx} className="space-y-2 border rounded-xl p-4 bg-slate-50">
-                                        <Label className="font-semibold text-slate-700">Image {idx}</Label>
+                                        <Label className="font-semibold text-slate-700 flex items-center gap-2">
+                                            Slot {idx}
+                                            {idx > 6 && (
+                                                <span className="text-[10px] font-bold uppercase tracking-wide text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded">
+                                                    Pro
+                                                </span>
+                                            )}
+                                        </Label>
 
-                                        {product[urlKey] && (
-                                            <img
-                                                src={product[urlKey]}
-                                                alt={`Current image ${idx}`}
-                                                className="h-24 w-24 object-cover rounded-lg border shadow-sm"
-                                            />
+                                        {currentUrl && (
+                                            currentType === 'video' ? (
+                                                <video
+                                                    src={currentUrl}
+                                                    className="h-24 w-24 object-cover rounded-lg border shadow-sm"
+                                                    muted
+                                                    loop
+                                                    autoPlay
+                                                    playsInline
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={currentUrl}
+                                                    alt={`Current media ${idx}`}
+                                                    className="h-24 w-24 object-cover rounded-lg border shadow-sm"
+                                                />
+                                            )
                                         )}
 
                                         <Input
                                             id={imageKey}
                                             type="file"
-                                            accept="image/jpeg,image/png,image/webp,image/gif"
-                                            onChange={(e) => handleImageChange(e, imageKey)}
+                                            accept={fileAccept}
+                                            onChange={(e) => handleFileChange(e, imageKey)}
                                             className="text-sm"
                                         />
+
+                                        {plan?.allows_video && (
+                                            <p className="text-[11px] text-muted-foreground">
+                                                Image or video (mp4, webm, mov · up to 50 MB)
+                                            </p>
+                                        )}
 
                                         {data[imageKey] && (
                                             <p className="text-xs text-muted-foreground truncate">
@@ -331,20 +419,20 @@ export default function Edit() {
                                         )}
 
                                         <div className="pt-1 space-y-1">
-                                            <Label htmlFor={String(checkoutKey)} className="text-xs text-muted-foreground">
+                                            <Label htmlFor={checkoutKey} className="text-xs text-muted-foreground">
                                                 Checkout URL
                                             </Label>
                                             <Input
-                                                id={String(checkoutKey)}
+                                                id={checkoutKey}
                                                 type="url"
                                                 placeholder="https://yourstore.myshopify.com/products/..."
                                                 value={(data[checkoutKey] as string) ?? ''}
                                                 onChange={(e) => setData(checkoutKey, e.target.value)}
                                                 className="text-xs"
                                             />
-                                            {errors[checkoutKey as keyof typeof errors] && (
+                                            {errors[checkoutKey] && (
                                                 <p className="text-xs text-red-500">
-                                                    {errors[checkoutKey as keyof typeof errors] as string}
+                                                    {errors[checkoutKey] as string}
                                                 </p>
                                             )}
                                         </div>
@@ -371,5 +459,3 @@ export default function Edit() {
         </AppLayout>
     );
 }
-
-
