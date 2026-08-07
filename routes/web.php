@@ -91,9 +91,8 @@ Route::options('/api/{any}', function () {
 
 
 // Guest order tracking — look up a Shopify order by number + email (no login)
+// Guest order tracking — look up a Shopify order by number + email (no login)
 Route::post('/api/shopify/order-tracking', function (Request $request) {
-    $debug = $request->query('debug') === 'np_diag_9f3';
-
     $data = $request->validate([
         'order' => 'required|string|max:32',
         'email' => 'required|email|max:255',
@@ -105,47 +104,124 @@ Route::post('/api/shopify/order-tracking', function (Request $request) {
     $cors = fn($resp) => $resp->header('Access-Control-Allow-Origin', '*');
 
     if (!$shop || !$token) {
-        return $cors(response()->json($debug
-            ? ['debug' => true, 'has_shop' => (bool)$shop, 'has_token' => (bool)$token, 'reason' => 'missing env vars']
-            : ['found' => false]));
+        return $cors(response()->json(['found' => false]));
     }
 
     $name = ltrim(trim($data['order']), '#');
+
+    $gql = <<<'GRAPHQL'
+    query ($q: String!) {
+      orders(first: 1, query: $q) {
+        edges {
+          node {
+            name
+            email
+            createdAt
+            displayFinancialStatus
+            displayFulfillmentStatus
+            currentTotalPriceSet { shopMoney { amount currencyCode } }
+            subtotalPriceSet { shopMoney { amount currencyCode } }
+            totalShippingPriceSet { shopMoney { amount currencyCode } }
+            currentTotalDiscountsSet { shopMoney { amount currencyCode } }
+            totalTaxSet { shopMoney { amount currencyCode } }
+            paymentGatewayNames
+            shippingLines(first: 1) { edges { node { title } } }
+            shippingAddress { name address1 address2 city provinceCode zip country }
+            fulfillments {
+              displayStatus
+              createdAt
+              estimatedDeliveryAt
+              trackingInfo { number url company }
+              fulfillmentLineItems(first: 50) {
+                edges { node { quantity lineItem { title image { url } } } }
+              }
+            }
+            lineItems(first: 50) {
+              edges {
+                node {
+                  title
+                  quantity
+                  variantTitle
+                  image { url }
+                  originalUnitPriceSet { shopMoney { amount currencyCode } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    GRAPHQL;
+
     $resp = \Illuminate\Support\Facades\Http::withHeaders([
         'X-Shopify-Access-Token' => $token,
     ])->post("https://{$shop}/admin/api/{$apiVersion}/graphql.json", [
-        'query'     => 'query($q:String!){orders(first:1,query:$q){edges{node{name email displayFinancialStatus displayFulfillmentStatus}}}}',
+        'query'     => $gql,
         'variables' => ['q' => 'name:#' . $name],
     ]);
 
-    $json  = $resp->json();
-    $order = data_get($json, 'data.orders.edges.0.node');
+    $order = data_get($resp->json(), 'data.orders.edges.0.node');
 
-    if ($debug) {
-        return $cors(response()->json([
-            'debug'               => true,
-            'shop'                => $shop,
-            'api_version'         => $apiVersion,
-            'query'               => 'name:#' . $name,
-            'shopify_http_status' => $resp->status(),
-            'graphql_errors'      => data_get($json, 'errors'),
-            'order_found'         => (bool) $order,
-            'returned_email'      => $order['email'] ?? null,
-            'submitted_email'     => $data['email'],
-            'email_matched'       => $order && strtolower((string)($order['email'] ?? '')) === strtolower($data['email']),
-        ]));
+    $emailMatches = $order && hash_equals(
+        strtolower((string) ($order['email'] ?? '')),
+        strtolower($data['email'])
+    );
+
+    if (!$emailMatches) {
+        return $cors(response()->json(['found' => false]));
     }
 
-    $emailMatches = $order && hash_equals(strtolower((string)($order['email'] ?? '')), strtolower($data['email']));
-    if (!$emailMatches) return $cors(response()->json(['found' => false]));
+    $addr = $order['shippingAddress'] ?? null;
 
     return $cors(response()->json([
         'found'              => true,
         'name'               => $order['name'],
-        'financial_status'   => $order['displayFinancialStatus'],
-        'fulfillment_status' => $order['displayFulfillmentStatus'],
+        'email'              => $order['email'] ?? null,
+        'created_at'         => $order['createdAt'] ?? null,
+        'financial_status'   => $order['displayFinancialStatus'] ?? null,
+        'fulfillment_status' => $order['displayFulfillmentStatus'] ?? null,
+        'currency'           => data_get($order, 'currentTotalPriceSet.shopMoney.currencyCode'),
+        'total'              => data_get($order, 'currentTotalPriceSet.shopMoney.amount'),
+        'subtotal'           => data_get($order, 'subtotalPriceSet.shopMoney.amount'),
+        'shipping_total'     => data_get($order, 'totalShippingPriceSet.shopMoney.amount'),
+        'discount'           => data_get($order, 'currentTotalDiscountsSet.shopMoney.amount'),
+        'tax'                => data_get($order, 'totalTaxSet.shopMoney.amount'),
+        'payment_methods'    => $order['paymentGatewayNames'] ?? [],
+        'shipping_method'    => data_get($order, 'shippingLines.edges.0.node.title'),
+        'shipping_address'   => $addr ? [
+            'name'     => $addr['name'] ?? null,
+            'address1' => $addr['address1'] ?? null,
+            'address2' => $addr['address2'] ?? null,
+            'city'     => $addr['city'] ?? null,
+            'province' => $addr['provinceCode'] ?? null,
+            'zip'      => $addr['zip'] ?? null,
+            'country'  => $addr['country'] ?? null,
+        ] : null,
+        'fulfillments' => collect($order['fulfillments'] ?? [])->map(fn($f) => [
+            'status'             => $f['displayStatus'] ?? null,
+            'created_at'         => $f['createdAt'] ?? null,
+            'estimated_delivery' => $f['estimatedDeliveryAt'] ?? null,
+            'tracking'           => collect($f['trackingInfo'] ?? [])->map(fn($t) => [
+                'number'  => $t['number'] ?? null,
+                'url'     => $t['url'] ?? null,
+                'company' => $t['company'] ?? null,
+            ])->values(),
+            'items' => collect(data_get($f, 'fulfillmentLineItems.edges', []))->map(fn($e) => [
+                'title'    => data_get($e, 'node.lineItem.title'),
+                'image'    => data_get($e, 'node.lineItem.image.url'),
+                'quantity' => data_get($e, 'node.quantity'),
+            ])->values(),
+        ])->values(),
+        'items' => collect(data_get($order, 'lineItems.edges', []))->map(fn($e) => [
+            'title'    => $e['node']['title'] ?? '',
+            'variant'  => $e['node']['variantTitle'] ?? null,
+            'quantity' => $e['node']['quantity'] ?? 1,
+            'image'    => data_get($e['node'], 'image.url'),
+            'price'    => data_get($e['node'], 'originalUnitPriceSet.shopMoney.amount'),
+        ])->values(),
     ]));
-});
+})->middleware('throttle:15,1')->name('api.shopify.order-tracking');
+
 
 
 
