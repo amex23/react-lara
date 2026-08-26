@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import UpgradeToProButton from '@/components/upgradetoprobutton';
 import { TrendingUp } from 'lucide-react';
+import CancelSubscriptionModal from '@/components/CancelSubscriptionModal.tsx';
 import {
     Table,
     TableBody,
@@ -248,11 +249,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
                                                     &#10003; Subscribed
                                                 </span>
-                                                <a href="/subscription/cancel" onClick={handleCancel}>
-                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs">
-                                                        Cancel Subscription
-                                                    </Button>
-                                                </a>
+                                                <CancelSubscriptionModal />
                                             </div>
                                         ) : (
                                             <a href="/subscribe">
@@ -314,11 +311,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-2 rounded-lg whitespace-nowrap">
                                                             &#10003; Subscribed
                                                         </span>
-                                                        <a href="/subscription/cancel" onClick={handleCancel}>
-                                                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap text-xs px-1 py-1.5">
-                                                                Cancel Subscription
-                                                            </Button>
-                                                        </a>
+                                                        <CancelSubscriptionModal />
                                                     </div>
                                                 ) : (
                                                     <a href="/subscribe">
