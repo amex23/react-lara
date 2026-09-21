@@ -115,7 +115,11 @@ class ProductController extends Controller
             if ($product->{"image{$i}"}) {
                 Storage::disk('public')->delete($product->{"image{$i}"});
             }
+            if ($product->{"thumb{$i}"}) {
+                Storage::disk('public')->delete($product->{"thumb{$i}"});
+            }
             $cleared["image{$i}"]        = null;
+            $cleared["thumb{$i}"]        = null;
             $cleared["checkout_url{$i}"] = null;
         }
 
@@ -176,8 +180,14 @@ class ProductController extends Controller
             $base = 'nullable|image|mimes:' . $upload['image_mimes'] . '|max:' . $upload['image_max_kb'];
         }
 
+        // Thumbnails are always still images, even on a video-capable plan.
+        $thumbRule = 'nullable|image|mimes:' . $upload['image_mimes']
+            . '|max:' . $upload['thumb_max_kb'];
+
         for ($i = 1; $i <= $limit; $i++) {
             $rules["image{$i}"]        = $base;
+            $rules["thumb{$i}"]        = $thumbRule;
+            $rules["remove_thumb{$i}"] = 'nullable|boolean';
             $rules["checkout_url{$i}"] = 'nullable|url|max:500';
         }
 
@@ -215,7 +225,8 @@ class ProductController extends Controller
 
     /**
      * Store uploaded media. Images and videos share the same image{N} column —
-     * the type is inferred from the extension at read time.
+     * the type is inferred from the extension at read time. Thumbnails live in
+     * their own thumb{N} column and are always separate files.
      */
     private function handleMediaUploads(Request $request, User $target, User $owner): array
     {
@@ -223,6 +234,8 @@ class ProductController extends Controller
         $videoExts = config('plans.uploads.video_exts');
 
         for ($i = 1; $i <= $target->mediaLimit(); $i++) {
+            $updates += $this->handleThumbUpload($request, $target, $i);
+
             $key = "image{$i}";
 
             if (! $request->hasFile($key)) {
@@ -248,6 +261,33 @@ class ProductController extends Controller
         }
 
         return $updates;
+    }
+
+    /**
+     * Thumbnail for a single slot: upload replaces, remove_thumb{N} clears.
+     * Never touches image{N}.
+     */
+    private function handleThumbUpload(Request $request, User $target, int $slot): array
+    {
+        $key = "thumb{$slot}";
+
+        if ($request->boolean("remove_thumb{$slot}") && ! $request->hasFile($key)) {
+            if ($target->$key) {
+                Storage::disk('public')->delete($target->$key);
+            }
+
+            return [$key => null];
+        }
+
+        if (! $request->hasFile($key)) {
+            return [];
+        }
+
+        if ($target->$key) {
+            Storage::disk('public')->delete($target->$key);
+        }
+
+        return [$key => $request->file($key)->store('store-thumbs', 'public')];
     }
 
     private function planPayload(User $user): array
@@ -328,8 +368,14 @@ class ProductController extends Controller
 
         // Flat keys kept for backwards compatibility with existing components.
         foreach ($this->allSlots() as $i) {
-            $payload["image{$i}_url"]  = $user->{"image{$i}"} ? Storage::url($user->{"image{$i}"}) : null;
+            $imageUrl = $user->{"image{$i}"} ? Storage::url($user->{"image{$i}"}) : null;
+            $thumbUrl = $user->thumbUrl($i);
+
+            $payload["image{$i}_url"]  = $imageUrl;
             $payload["image{$i}_type"] = $user->mediaType($i);
+            // The uploaded thumbnail only — null means "no thumbnail set", so
+            // the UI can show the fallback state rather than a duplicate.
+            $payload["thumb{$i}_url"]    = $thumbUrl;
             $payload["checkout_url{$i}"] = $user->{"checkout_url{$i}"};
         }
 

@@ -239,6 +239,8 @@ Route::get('/api/store-profile/{id}', function ($id) {
     $media = collect($user->mediaItems(publicOnly: true))
         ->map(fn($m) => [
             'url'          => $m['url'],
+            'thumb_url'    => $m['thumb_url'],       // falls back to url when unset
+            'has_thumb'    => $m['has_thumb'],
             'type'         => $m['type'],            // 'image' | 'video'
             'checkout_url' => $m['checkout_url'] ?: $fallback,
             'price'        => $user->price,

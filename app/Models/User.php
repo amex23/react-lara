@@ -24,6 +24,8 @@ class User extends Authenticatable
         'description',
         'image1','image2','image3','image4','image5','image6',
         'image7','image8','image9','image10','image11','image12',
+        'thumb1','thumb2','thumb3','thumb4','thumb5','thumb6',
+        'thumb7','thumb8','thumb9','thumb10','thumb11','thumb12',
         'subscription',
         'plan',
         'display_count',
@@ -140,10 +142,21 @@ class User extends Authenticatable
     }
 
     /**
+     * Public URL of the slot's thumbnail, or null when none was uploaded.
+     * The thumbnail is always a separate file from image{N}.
+     */
+    public function thumbUrl(int $slot): ?string
+    {
+        $path = $this->{"thumb{$slot}"};
+
+        return $path ? Storage::url($path) : null;
+    }
+
+    /**
      * Non-empty media slots, capped by the plan and (optionally) by
      * display_count for public-facing output.
      *
-     * @return array<int, array{slot:int,url:string,type:string,checkout_url:?string}>
+     * @return array<int, array{slot:int,url:string,thumb_url:string,has_thumb:bool,type:string,checkout_url:?string}>
      */
     public function mediaItems(bool $publicOnly = false): array
     {
@@ -158,9 +171,16 @@ class User extends Authenticatable
                 continue;
             }
 
+            $url   = Storage::url($this->{"image{$i}"});
+            $thumb = $this->thumbUrl($i);
+
             $items[] = [
                 'slot'         => $i,
-                'url'          => Storage::url($this->{"image{$i}"}),
+                'url'          => $url,
+                // Always safe to render: falls back to the full media when no
+                // thumbnail was uploaded.
+                'thumb_url'    => $thumb ?? $url,
+                'has_thumb'    => $thumb !== null,
                 'type'         => $this->mediaType($i),
                 'checkout_url' => $this->{"checkout_url{$i}"} ?: $this->default_checkout_url,
             ];

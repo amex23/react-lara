@@ -51,6 +51,7 @@ return [
     'uploads' => [
         'image_mimes'   => 'jpeg,png,jpg,webp,gif',
         'image_max_kb'  => 2048,     // 2 MB
+        'thumb_max_kb'  => 2048,     // 2 MB — thumbnails are always still images
         'video_mimes'   => 'mp4,webm,mov,m4v',
         'video_max_kb'  => 51200,    // 50 MB — must be <= post_max_size / upload_max_filesize
         'video_exts'    => ['mp4', 'webm', 'mov', 'm4v'],

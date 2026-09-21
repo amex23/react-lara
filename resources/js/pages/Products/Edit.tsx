@@ -69,6 +69,8 @@ export default function Edit() {
     };
     slots.forEach((idx) => {
         initialData[`image${idx}`]        = null;
+        initialData[`thumb${idx}`]        = null;
+        initialData[`remove_thumb${idx}`] = false;
         initialData[`checkout_url${idx}`] = product[`checkout_url${idx}`] ?? '';
     });
 
@@ -95,6 +97,9 @@ export default function Edit() {
         const file = e.target.files?.[0];
         if (file) setData(key, file);
     };
+
+    // Thumbnails are still images on every plan, even where video is allowed.
+    const thumbAccept = 'image/jpeg,image/png,image/webp,image/gif';
 
     const videoExts = ['mp4', 'webm', 'mov', 'm4v'];
     const isVideoUrl = (url?: string | null) =>
@@ -362,9 +367,12 @@ export default function Edit() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {slots.map((idx) => {
                                 const imageKey    = `image${idx}`;
+                                const thumbKey    = `thumb${idx}`;
                                 const urlKey      = `image${idx}_url`;
                                 const checkoutKey = `checkout_url${idx}`;
                                 const currentUrl  = product[urlKey] as string | null;
+                                const currentThumb = product[`thumb${idx}_url`] as string | null;
+                                const removeThumb  = data[`remove_thumb${idx}`] as boolean;
                                 const currentType = (product[`image${idx}_type`] as string | null)
                                     ?? (isVideoUrl(currentUrl) ? 'video' : 'image');
 
@@ -417,6 +425,80 @@ export default function Edit() {
                                                 New: {(data[imageKey] as File).name}
                                             </p>
                                         )}
+
+                                        {/* Thumbnail — a separate file from the media above */}
+                                        <div className="pt-2 mt-1 border-t border-slate-200 space-y-1.5">
+                                            <Label
+                                                htmlFor={thumbKey}
+                                                className="text-xs font-medium text-slate-600 flex items-center gap-2"
+                                            >
+                                                Thumbnail
+                                                {currentThumb && !removeThumb && (
+                                                    <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded">
+                                                        Set
+                                                    </span>
+                                                )}
+                                            </Label>
+
+                                            {currentThumb && !removeThumb && !data[thumbKey] && (
+                                                <div className="flex items-center gap-2">
+                                                    <img
+                                                        src={currentThumb}
+                                                        alt={`Thumbnail ${idx}`}
+                                                        className="h-14 w-14 object-cover rounded-md border shadow-sm"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setData(`remove_thumb${idx}`, true)}
+                                                        className="text-[11px] text-red-500 hover:text-red-600 hover:underline"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {removeThumb && !data[thumbKey] && (
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[11px] text-red-500">
+                                                        Thumbnail will be removed on save.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setData(`remove_thumb${idx}`, false)}
+                                                        className="text-[11px] text-slate-500 hover:underline"
+                                                    >
+                                                        Undo
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            <Input
+                                                id={thumbKey}
+                                                type="file"
+                                                accept={thumbAccept}
+                                                onChange={(e) => {
+                                                    handleFileChange(e, thumbKey);
+                                                    setData(`remove_thumb${idx}`, false);
+                                                }}
+                                                className="text-xs"
+                                            />
+
+                                            {data[thumbKey] ? (
+                                                <p className="text-[11px] text-muted-foreground truncate">
+                                                    New: {(data[thumbKey] as File).name}
+                                                </p>
+                                            ) : (
+                                                <p className="text-[11px] text-muted-foreground">
+                                                    Optional. Shown in place of the media above &mdash; falls back to it if empty.
+                                                </p>
+                                            )}
+
+                                            {errors[thumbKey] && (
+                                                <p className="text-xs text-red-500">
+                                                    {errors[thumbKey] as string}
+                                                </p>
+                                            )}
+                                        </div>
 
                                         <div className="pt-1 space-y-1">
                                             <Label htmlFor={checkoutKey} className="text-xs text-muted-foreground">
