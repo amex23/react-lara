@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import UpgradeToProButton from '@/components/upgradetoprobutton';
 import { TrendingUp } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye } from '@fortawesome/free-solid-svg-icons';
 import CancelSubscriptionModal from '@/components/CancelSubscriptionModal.tsx';
 import {
     Table,
@@ -131,27 +133,39 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
         const viewCount = imageViews[String(i)] ?? 0;
 
         if (type === 'video') {
-            const dim = size === 'sm' ? 'w-full h-[120px]' : 'w-full aspect-square';
             return (
-                <div key={i} className={`relative ${dim}`}>
+                <div key={i} className="relative w-full h-[120px]">
                     {thumbUrl ? (
                         // A thumbnail was uploaded — show it as the poster frame
                         // instead of autoplaying the clip in the dashboard.
                         <img
                             src={thumbUrl}
                             alt={`Media ${i} thumbnail`}
-                            className="w-full h-full object-cover rounded border"
+                            className="w-full h-full object-cover rounded border shadow-sm"
                         />
                     ) : (
                         <video
                             src={url}
-                            className="w-full h-full object-cover rounded border"
+                            className="w-full h-full object-cover rounded border shadow-sm"
                             muted
                             loop
                             autoPlay
                             playsInline
                         />
                     )}
+
+                    {/* View counter — same badge the image slots use */}
+                    <span className="absolute top-[3%] z-[9] flex bg-[#4A4A4A] items-center justify-center rounded-xs ml-2 mt-2 px-[1px] py-[1px]">
+                        <span className="px-1 py-0 text-xs text-white font-bold rounded-sm leading-tight">
+                            <FontAwesomeIcon icon={faEye} />
+                        </span>
+                        {viewCount > 0 && (
+                            <span className="bg-red-500 px-1 py-0 text-xs text-white font-bold rounded-sm leading-tight">
+                                {viewCount}
+                            </span>
+                        )}
+                    </span>
+
                     <span className="absolute bottom-0.5 right-0.5 text-[9px] font-bold bg-black/60 text-white px-1 rounded">
                         &#9654;
                     </span>
