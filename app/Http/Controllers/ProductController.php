@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -94,12 +95,38 @@ class ProductController extends Controller
     {
         $this->authorizeAccess($product);
 
+        // ── TEMPORARY DIAGNOSTIC — delete this block once the issue is found ──
+        Log::info('THUMB-DEBUG incoming', [
+            'all_files'      => array_keys($request->allFiles()),
+            'has_thumb1'     => $request->hasFile('thumb1'),
+            'thumb1_valid'   => $request->hasFile('thumb1') ? $request->file('thumb1')->isValid() : null,
+            'thumb1_error'   => $request->hasFile('thumb1') ? $request->file('thumb1')->getErrorMessage() : null,
+            'thumb1_size'    => $request->hasFile('thumb1') ? $request->file('thumb1')->getSize() : null,
+            'media_limit'    => $product->mediaLimit(),
+            'content_length' => $request->header('Content-Length'),
+        ]);
+        // ──────────────────────────────────────────────────────────────────────
+
         $validated = $request->validate($this->rules($product));
 
         $updates = $this->baseUpdates($validated, $product);
         $updates += $this->handleMediaUploads($request, $product, $product);
 
+        // ── TEMPORARY DIAGNOSTIC ──
+        Log::info('THUMB-DEBUG updates', [
+            'keys'   => array_keys($updates),
+            'thumb1' => $updates['thumb1'] ?? '(not present)',
+        ]);
+        // ──────────────────────────
+
         $product->update($updates);
+
+        // ── TEMPORARY DIAGNOSTIC ──
+        Log::info('THUMB-DEBUG after save', [
+            'thumb1_in_db' => $product->fresh()->thumb1,
+            'image1_in_db' => $product->fresh()->image1,
+        ]);
+        // ──────────────────────────
 
         return redirect()->route($this->indexRoute())
             ->with('message', 'Store profile updated successfully.');
