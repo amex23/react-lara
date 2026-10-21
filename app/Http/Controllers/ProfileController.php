@@ -35,7 +35,8 @@ class ProfileController extends Controller
                 if ($user->$key) {
                     Storage::disk('public')->delete($user->$key);
                 }
-                $updates[$key] = $request->file($key)->store('store-images', 'public');
+                // $updates[$key] = $request->file($key)->store('store-images', 'public');
+                $updates[$key] = MediaOptimizer::store($request->file($key), 'store-images');
             }
         }
 

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
+use App\Support\MediaOptimizer;
 
 class ProductController extends Controller
 {
@@ -258,7 +259,8 @@ class ProductController extends Controller
 
             $folder = in_array($ext, $videoExts, true) ? 'store-videos' : 'store-images';
 
-            $updates[$key] = $file->store($folder, 'public');
+            // $updates[$key] = $file->store($folder, 'public');
+            $updates[$key] = MediaOptimizer::store($file, $folder);
         }
 
         return $updates;
@@ -288,7 +290,8 @@ class ProductController extends Controller
             Storage::disk('public')->delete($target->$key);
         }
 
-        return [$key => $request->file($key)->store('store-thumbs', 'public')];
+        // return [$key => $request->file($key)->store('store-thumbs', 'public')];
+        return [$key => MediaOptimizer::store($request->file($key), 'store-thumbs')];
     }
 
     private function planPayload(User $user): array

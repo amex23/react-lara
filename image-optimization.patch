@@ -1,0 +1,216 @@
+diff --git a/app/Console/Commands/OptimizeStoreMedia.php b/app/Console/Commands/OptimizeStoreMedia.php
+new file mode 100644
+index 0000000..7c60a95
+--- /dev/null
++++ b/app/Console/Commands/OptimizeStoreMedia.php
+@@ -0,0 +1,80 @@
++<?php
++
++namespace App\Console\Commands;
++
++use App\Models\User;
++use App\Support\MediaOptimizer;
++use Illuminate\Console\Command;
++use Illuminate\Support\Facades\Storage;
++
++/**
++ * One-off: re-encode every existing image{N}/thumb{N} to resized WebP with
++ * cache headers, and point the DB at the new files.
++ *
++ *   php artisan media:optimize --dry-run      # list what would change
++ *   php artisan media:optimize                # convert, keep old files
++ *   php artisan media:optimize --delete-old   # convert, delete originals
++ */
++class OptimizeStoreMedia extends Command
++{
++    protected $signature = 'media:optimize {--dry-run} {--delete-old}';
++
++    protected $description = 'Resize/convert existing store images to WebP with long cache headers';
++
++    public function handle(): int
++    {
++        $disk   = Storage::disk('public');
++        $slots  = range(1, (int) config('plans.media_columns'));
++        $dryRun = (bool) $this->option('dry-run');
++        $done   = 0;
++
++        User::query()->chunkById(50, function ($users) use ($disk, $slots, $dryRun, &$done) {
++            foreach ($users as $user) {
++                $updates = [];
++                $old     = [];
++
++                foreach ($slots as $i) {
++                    foreach (["image{$i}" => 'store-images', "thumb{$i}" => 'store-thumbs'] as $col => $folder) {
++                        $path = $user->$col;
++
++                        // Skip empty slots, videos/GIFs, and files already converted.
++                        if (! $path || str_ends_with($path, '.webp') || ! MediaOptimizer::shouldOptimize($path)) {
++                            continue;
++                        }
++
++                        if ($dryRun) {
++                            $this->line("[dry-run] user {$user->id} {$col}: {$path}");
++                            continue;
++                        }
++
++                        if (! $disk->exists($path)) {
++                            $this->warn("Missing file, skipped: user {$user->id} {$col}: {$path}");
++                            continue;
++                        }
++
++                        try {
++                            $updates[$col] = MediaOptimizer::storeImage($disk->get($path), $folder);
++                            $old[]         = $path;
++                        } catch (\Throwable $e) {
++                            $this->error("Failed user {$user->id} {$col}: {$e->getMessage()}");
++                        }
++                    }
++                }
++
++                if ($updates) {
++                    $user->forceFill($updates)->save();
++                    $done += count($updates);
++                    $this->info("User {$user->id}: optimized " . count($updates) . ' file(s)');
++
++                    if ($this->option('delete-old')) {
++                        $disk->delete($old);
++                    }
++                }
++            }
++        });
++
++        $this->info($dryRun ? 'Dry run complete.' : "Done. {$done} file(s) optimized.");
++
++        return self::SUCCESS;
++    }
++}
+diff --git a/app/Http/Controllers/ProductController.php b/app/Http/Controllers/ProductController.php
+index 1078422..474b945 100644
+--- a/app/Http/Controllers/ProductController.php
++++ b/app/Http/Controllers/ProductController.php
+@@ -4,6 +4,7 @@
+ 
+ use App\Models\User;
+ use Illuminate\Http\Request;
++use App\Support\MediaOptimizer;
+ use Illuminate\Support\Facades\Storage;
+ use Inertia\Inertia;
+ use Illuminate\Support\Facades\Auth;
+@@ -258,7 +259,7 @@ private function handleMediaUploads(Request $request, User $target, User $owner)
+ 
+             $folder = in_array($ext, $videoExts, true) ? 'store-videos' : 'store-images';
+ 
+-            $updates[$key] = $file->store($folder, 'public');
++            $updates[$key] = MediaOptimizer::store($file, $folder);
+         }
+ 
+         return $updates;
+@@ -288,7 +289,7 @@ private function handleThumbUpload(Request $request, User $target, int $slot): a
+             Storage::disk('public')->delete($target->$key);
+         }
+ 
+-        return [$key => $request->file($key)->store('store-thumbs', 'public')];
++        return [$key => MediaOptimizer::store($request->file($key), 'store-thumbs')];
+     }
+ 
+     private function planPayload(User $user): array
+diff --git a/app/Http/Controllers/ProfileController.php b/app/Http/Controllers/ProfileController.php
+index 8da28c9..755eb0f 100644
+--- a/app/Http/Controllers/ProfileController.php
++++ b/app/Http/Controllers/ProfileController.php
+@@ -4,6 +4,7 @@
+ 
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Auth;
++use App\Support\MediaOptimizer;
+ use Illuminate\Support\Facades\Storage;
+ 
+ class ProfileController extends Controller
+@@ -35,7 +36,7 @@ public function update(Request $request)
+                 if ($user->$key) {
+                     Storage::disk('public')->delete($user->$key);
+                 }
+-                $updates[$key] = $request->file($key)->store('store-images', 'public');
++                $updates[$key] = MediaOptimizer::store($request->file($key), 'store-images');
+             }
+         }
+ 
+diff --git a/app/Support/MediaOptimizer.php b/app/Support/MediaOptimizer.php
+new file mode 100644
+index 0000000..3180c9e
+--- /dev/null
++++ b/app/Support/MediaOptimizer.php
+@@ -0,0 +1,73 @@
++<?php
++
++namespace App\Support;
++
++use Illuminate\Http\UploadedFile;
++use Illuminate\Support\Facades\Storage;
++use Illuminate\Support\Str;
++use Intervention\Image\ImageManager;
++
++/**
++ * Resizes + converts still images to WebP and uploads every file with a
++ * long-lived Cache-Control header. Filenames are random, so "immutable"
++ * is safe: a replaced image always gets a new path.
++ */
++class MediaOptimizer
++{
++    public const CACHE_CONTROL = 'public, max-age=31536000, immutable';
++
++    /** folder => [max width px, WebP quality] */
++    private const PRESETS = [
++        'store-images' => [1200, 80],
++        'store-thumbs' => [480, 75],
++    ];
++
++    /** Extensions we re-encode. GIFs (may be animated) and videos are stored as-is. */
++    private const OPTIMIZABLE = ['jpg', 'jpeg', 'png', 'webp'];
++
++    public static function shouldOptimize(string $pathOrExt): bool
++    {
++        $ext = strtolower(pathinfo($pathOrExt, PATHINFO_EXTENSION) ?: $pathOrExt);
++
++        return in_array($ext, self::OPTIMIZABLE, true);
++    }
++
++    /**
++     * Store an uploaded file in $folder on the public disk and return its path.
++     */
++    public static function store(UploadedFile $file, string $folder): string
++    {
++        $ext = strtolower($file->getClientOriginalExtension());
++
++        if (! isset(self::PRESETS[$folder]) || ! self::shouldOptimize($ext)) {
++            // Videos, GIFs, anything else: original bytes, but cached properly.
++            return Storage::disk('public')->putFile($folder, $file, [
++                'CacheControl' => self::CACHE_CONTROL,
++            ]);
++        }
++
++        return self::storeImage($file->getRealPath(), $folder);
++    }
++
++    /**
++     * Encode a still image (file path or raw binary string) and store it.
++     */
++    public static function storeImage(string $source, string $folder): string
++    {
++        [$width, $quality] = self::PRESETS[$folder];
++
++        $encoded = ImageManager::gd()
++            ->read($source)              // auto-orients phone photos via EXIF
++            ->scaleDown(width: $width)   // never upscales
++            ->toWebp($quality);
++
++        $path = $folder . '/' . Str::random(40) . '.webp';
++
++        Storage::disk('public')->put($path, (string) $encoded, [
++            'ContentType'  => 'image/webp',
++            'CacheControl' => self::CACHE_CONTROL,
++        ]);
++
++        return $path;
++    }
++}
