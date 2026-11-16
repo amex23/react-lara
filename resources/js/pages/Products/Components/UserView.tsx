@@ -18,7 +18,7 @@ import OrdersSection from './UserView/OrdersSection';
 import ImageWithBadge from './UserView/ImageWithBadge';
 import SubscribeButton from '@/components/SubscribeButton';
 import { usePage } from '@inertiajs/react';
-import CancelSubscriptionModal from '@/components/CancelSubscriptionModal';
+// import CancelSubscriptionModal from '@/components/CancelSubscriptionModal';
 
 
 interface Product {
