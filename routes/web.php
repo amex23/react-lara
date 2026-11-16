@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
@@ -239,7 +240,9 @@ Route::get('/api/store-profile/{id}', function ($id) {
     $media = collect($user->mediaItems(publicOnly: true))
         ->map(fn($m) => [
             'url'          => $m['url'],
-            'type'         => $m['type'],            // 'image' | 'video'
+            'thumb_url'    => $m['thumb_url'],
+            'has_thumb'    => $m['has_thumb'],
+            'type'         => $m['type'],
             'checkout_url' => $m['checkout_url'] ?: $fallback,
             'price'        => $user->price,
         ])
@@ -378,6 +381,12 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
     $landingSite = $order['landing_site'] ?? null;
     $userId      = null;
 
+    Log::info('[SMD webhook] received', [
+        'order_id'        => $order['id'] ?? null,
+        'note_attributes' => $order['note_attributes'] ?? null,
+        'landing_site'    => $landingSite,
+    ]);
+
     $cartAttributes = $order['cart_attributes'] ?? $order['note_attributes'] ?? [];
     foreach ($cartAttributes as $attr) {
         if (($attr['name'] ?? '') === 'utm_user' && !empty($attr['value'])) {
@@ -395,22 +404,26 @@ Route::post('/api/webhooks/shopify/orders', function (Request $request) {
     }
 
     if (!$userId) {
+        Log::warning('[SMD webhook] skipped: no utm_user', ['order_id' => $order['id'] ?? null]);
         return response()->json(['ok' => true, 'skipped' => 'no utm_user']);
     }
 
     $user = User::find($userId);
     if (!$user || !$user->subscription) {
+        Log::warning('[SMD webhook] skipped: user not found or not subscribed', ['user_id' => $userId]);
         return response()->json(['ok' => true, 'skipped' => 'user not found or not subscribed']);
     }
 
     // Step 2: Verify HMAC using seller's own secret (fallback to global env)
     $secret = $user->shopify_webhook_secret ?: env('SHOPIFY_WEBHOOK_SECRET');
     if (!$secret) {
+        Log::error('[SMD webhook] no webhook secret configured', ['user_id' => $userId]);
         return response()->json(['error' => 'No webhook secret configured'], 400);
     }
 
     $computed = base64_encode(hash_hmac('sha256', $body, $secret, true));
     if (!hash_equals($computed, $hmac ?? '')) {
+        Log::error('[SMD webhook] HMAC mismatch', ['user_id' => $userId, 'order_id' => $order['id'] ?? null]);
         return response()->json(['error' => 'Unauthorized'], 401);
     }
 
