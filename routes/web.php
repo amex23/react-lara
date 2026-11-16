@@ -243,6 +243,9 @@ Route::get('/api/store-profile/{id}', function ($id) {
             'thumb_url'    => $m['thumb_url'],
             'has_thumb'    => $m['has_thumb'],
             'type'         => $m['type'],
+            'thumb_url'    => $m['thumb_url'],       // falls back to url when unset
+            'has_thumb'    => $m['has_thumb'],
+            'type'         => $m['type'],            // 'image' | 'video'
             'checkout_url' => $m['checkout_url'] ?: $fallback,
             'price'        => $user->price,
         ])

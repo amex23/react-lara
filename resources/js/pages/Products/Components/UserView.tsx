@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import UpgradeToProButton from '@/components/upgradetoprobutton';
 import { TrendingUp } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye } from '@fortawesome/free-solid-svg-icons';
+import CancelSubscriptionModal from '@/components/CancelSubscriptionModal.tsx';
 import {
     Table,
     TableBody,
@@ -35,6 +38,12 @@ interface Product {
     image4_url?: string | null;
     image5_url?: string | null;
     image6_url?: string | null;
+    thumb1_url?: string | null;
+    thumb2_url?: string | null;
+    thumb3_url?: string | null;
+    thumb4_url?: string | null;
+    thumb5_url?: string | null;
+    thumb6_url?: string | null;
     plan?: string;
     plan_label?: string;
     media_limit?: number;
@@ -118,21 +127,47 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
         const url = product[`image${i}_url`] as string | null;
         if (!url) return null;
 
+        const thumbUrl = (product[`thumb${i}_url`] as string | null) ?? null;
+
         const type = (product[`image${i}_type`] as string | null)
             ?? (isVideoUrl(url) ? 'video' : 'image');
 
+        const viewCount = imageViews[String(i)] ?? 0;
+
         if (type === 'video') {
-            const dim = size === 'sm' ? 'w-full h-[120px]' : 'w-full aspect-square';
             return (
-                <div key={i} className={`relative ${dim}`}>
-                    <video
-                        src={url}
-                        className="w-full h-full object-cover rounded border"
-                        muted
-                        loop
-                        autoPlay
-                        playsInline
-                    />
+                <div key={i} className="relative w-full h-[120px]">
+                    {thumbUrl ? (
+                        // A thumbnail was uploaded — show it as the poster frame
+                        // instead of autoplaying the clip in the dashboard.
+                        <img
+                            src={thumbUrl}
+                            alt={`Media ${i} thumbnail`}
+                            className="w-full h-full object-cover rounded border shadow-sm"
+                        />
+                    ) : (
+                        <video
+                            src={url}
+                            className="w-full h-full object-cover rounded border shadow-sm"
+                            muted
+                            loop
+                            autoPlay
+                            playsInline
+                        />
+                    )}
+
+                    {/* View counter — same badge the image slots use */}
+                    <span className="absolute top-[3%] z-[9] flex bg-[#4A4A4A] items-center justify-center rounded-xs ml-2 mt-2 px-[1px] py-[1px]">
+                        <span className="px-1 py-0 text-xs text-white font-bold rounded-sm leading-tight">
+                            <FontAwesomeIcon icon={faEye} />
+                        </span>
+                        {viewCount > 0 && (
+                            <span className="bg-red-500 px-1 py-0 text-xs text-white font-bold rounded-sm leading-tight">
+                                {viewCount}
+                            </span>
+                        )}
+                    </span>
+
                     <span className="absolute bottom-0.5 right-0.5 text-[9px] font-bold bg-black/60 text-white px-1 rounded">
                         &#9654;
                     </span>
@@ -140,9 +175,14 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
             );
         }
 
-        const viewCount = imageViews[String(i)] ?? 0;
         return (
-            <ImageWithBadge key={i} src={url} alt={`Media ${i}`} viewCount={viewCount} size={size} />
+            <ImageWithBadge
+                key={i}
+                src={thumbUrl ?? url}
+                alt={`Media ${i}`}
+                viewCount={viewCount}
+                size={size}
+            />
         );
     };
 
@@ -250,11 +290,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
                                                     &#10003; Subscribed
                                                 </span>
-                                                <a href="/subscription/cancel" onClick={handleCancel}>
-                                                    <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 text-xs">
-                                                        Cancel Subscription
-                                                    </Button>
-                                                </a>
+                                                <CancelSubscriptionModal />
                                             </div>
                                         ) : (
                                             <a href="/subscribe">
@@ -316,11 +352,7 @@ export default function UserView({ products, myProfile, editUrlBase }: UserViewP
                                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-1 py-2 rounded-lg whitespace-nowrap">
                                                             &#10003; Subscribed
                                                         </span>
-                                                        <a href="/subscription/cancel" onClick={handleCancel}>
-                                                            <Button size="sm" variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 whitespace-nowrap text-xs px-1 py-1.5">
-                                                                Cancel Subscription
-                                                            </Button>
-                                                        </a>
+                                                        <CancelSubscriptionModal />
                                                     </div>
                                                 ) : (
                                                     <a href="/subscribe">

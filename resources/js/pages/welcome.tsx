@@ -12,6 +12,13 @@ const PREVIEW_IMAGES = [
     'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&h=600&fit=crop&q=80',
 ];
 
+const REVIEWS = [
+    { name: 'NaturePackaged Dev Team.', text: 'The 24-hour stories increased our orders. Customers tap and check out instantly!', rating: 5 },
+    { name: 'Cecille, Pasterleria Manila', text: 'So easy to set up. My conversions went up within the first week.', rating: 5 },
+    { name: 'Ang L.', text: 'Love that it feels like Instagram stories but for my own shop. Game changer.', rating: 5 },
+    { name: 'Rhea M.', text: 'Direct checkout links are genius. No more DMs asking how to buy.', rating: 4 },
+];
+
 const DURATION = 4000;
 
 // ── Silent Geolocation Capture ────────────────────────────────────────────
@@ -153,6 +160,58 @@ function StoryOverlay({
     );
 }
 
+function ReviewSlider() {
+    const [current, setCurrent] = useState(0);
+    const [perView, setPerView] = useState(1);
+
+    useEffect(() => {
+        const update = () => setPerView(window.matchMedia('(min-width: 768px)').matches ? 2 : 1);
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
+    const pages = Math.ceil(REVIEWS.length / perView);
+    // Clamp current when perView changes so we never overscroll
+    useEffect(() => { setCurrent(c => Math.min(c, pages - 1)); }, [pages]);
+
+    return (
+        <div className="w-full max-w-[335px] lg:max-w-4xl">
+            <div className="overflow-hidden">
+                <h2 className="text-3xl font-bold text-[#474747] dark:text-[#EDEDEC] text-center my-3">
+                    Our Customer Reviews
+                </h2>
+                <div
+                    className="flex transition-transform duration-500 ease-out"
+                    style={{ transform: `translateX(-${current * 100}%)` }}
+                >
+                    {REVIEWS.map((r, i) => (
+                        <div key={i} className="w-full md:w-1/2 shrink-0 px-1 py-5">
+                            <div className="h-full rounded-lg bg-white p-6 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] dark:bg-[#161615] text-center shadow-md">
+                                <div className="mb-2 text-xl text-[#37B6FF]">{'★'.repeat(r.rating)}<span className="text-gray-300 text-md">{'★'.repeat(5 - r.rating)}</span></div>
+                                <p className="mb-3 text-md leading-[20px] text-[#706f6c] dark:text-[#A1A09A]">{r.text}</p>
+                                <span className="text-md font-bold text-[#474747] dark:text-[#EDEDEC]">- {r.name}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Dots */}
+            <div className="mt-4 flex justify-center gap-2">
+                {Array.from({ length: pages }).map((_, i) => (
+                    <button
+                        key={i}
+                        onClick={() => setCurrent(i)}
+                        aria-label={`Go to slide ${i + 1}`}
+                        className={`h-2 rounded-full transition-all ${i === current ? 'w-6 bg-[#37B6FF]' : 'w-2 bg-[#949494]'}`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function Welcome({
     canRegister = true,
 }: {
@@ -234,6 +293,12 @@ export default function Welcome({
                             <div className="absolute inset-0 rounded-t-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-t-none lg:rounded-r-lg dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]" />
                         </div>
                     </div>
+
+                    {/* <div className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
+                        sdsd
+                    </div> */}
+
+                    <ReviewSlider />
 
                     <div className="text-md md:text-xl text-center md:text-start flex gap-1 items-center"><b>20%</b> of Profit goes to <a href="https://www.worldvision.org.ph/"><b>WorldVision</b></a> Charity <svg xmlns="http://www.w3.org/2000/svg" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#37B6FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/></svg></div>
 
